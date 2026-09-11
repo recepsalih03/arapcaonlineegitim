@@ -1,0 +1,296 @@
+// Online Arapça Özel Ders Platformu — veri modeli
+// Şartname: PROJE.md §11
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Bağlantı adresleri prisma.config.ts içinde (migration/introspection için) ve
+// PrismaClient'a verilen driver adapter içinde (çalışma zamanı için) tanımlıdır.
+// Prisma 7 ile datasource bloğunda `url` desteklenmiyor.
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+/// Sınıf seviyeleri tam sayı olarak tutulur (bkz. src/lib/constants.ts GRADES).
+/// Şu an 5-8; 9. sınıf sonraki fazda eklenecek.
+
+model User {
+  id           String  @id @default(cuid())
+  username     String  @unique
+  passwordHash String
+  role         Role    @default(STUDENT)
+  /// Öğrenciler için 5-9; admin için null.
+  gradeLevel   Int?
+  /// Admin tarafından üretilen geçici bilgilerle ilk giriş yapıldıysa true kalır.
+  mustChangeCredentials Boolean @default(true)
+  isActive     Boolean @default(true)
+  /// Adminin öğrenciyi listede tanıması için serbest metin (öğrencinin gerçek adı).
+  fullName     String?
+  /// Admin öğrenciye ilettiği geçici şifreyi panelde tekrar görebilsin diye tutulur;
+  /// öğrenci ilk girişini yapıp şifresini değiştirince temizlenir.
+  initialPassword String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  devices              DeviceSession[]
+  surveyParticipations SurveyParticipation[]
+  gameProgress         GameProgress[]
+  videoProgress        VideoProgress[]
+
+  @@index([role, gradeLevel])
+}
+
+/// Bir fiziksel cihazın oturumu. Kullanıcı başına en fazla 4 aktif kayıt olabilir
+/// (bkz. MAX_DEVICES_PER_USER). Cihaz ayrımı fingerprint ile "en iyi çaba" olarak yapılır.
+model DeviceSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprint String
+  /// "iPhone · Safari" gibi okunabilir etiket.
+  deviceLabel String
+  userAgent   String?
+  /// IP'nin kabası: son okteti maskelenmiş hali (ör. 88.123.45.x).
+  ipHint      String?
+  isActive    Boolean  @default(true)
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, fingerprint])
+  @@index([userId, isActive])
+}
+
+/// Adminin videoları gruplaması için klasör (ör. "1. Ünite").
+/// Her klasör TEK BİR sınıfa aittir; 5. sınıfın "1. Ünite"si ile 6. sınıfınki
+/// ayrı kayıtlardır ve birbirini etkilemez.
+model VideoFolder {
+  id         String   @id @default(cuid())
+  name       String
+  gradeLevel Int
+  /// Sınıf içindeki sıralama; küçük olan önce gelir.
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  videoGrades VideoGrade[]
+
+  @@index([gradeLevel, sortOrder])
+}
+
+model Video {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  /// R2'deki HLS klasörünün ön eki, ör. "videos/clx123/". Playlist bu ön ekin altındadır.
+  hlsPrefix   String
+  /// Ön ek içindeki ana playlist dosyası, ör. "master.m3u8" veya "index.m3u8".
+  playlistName String @default("master.m3u8")
+  /// Opsiyonel kapak görseli R2 anahtarı.
+  posterKey   String?
+  durationSec Int?
+  isPublic    Boolean @default(false)
+  /// Public video için girişsiz erişim linki: /izle/<publicSlug>
+  publicSlug  String? @unique
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  grades   VideoGrade[]
+  progress VideoProgress[]
+
+  @@index([isPublic, isActive])
+}
+
+/// Videonun bir sınıfa atanması.
+///
+/// Klasör bilgisi bilerek BURADA duruyor, Video üzerinde değil: bir video
+/// birden fazla sınıfa işaretlenebiliyor ve her sınıfın kendi klasörleri var.
+/// Böylece aynı video 5. sınıfta "1. Ünite", 6. sınıfta başka bir klasörde
+/// olabiliyor. folderId boşsa video o sınıfta "Diğer" altında görünür.
+/// Öğrencinin bir videodaki izleme ilerlemesi. Öğrenci başına video başına tek satır.
+///
+/// Oyun ilerlemesiyle aynı mantık: kişiye bağlıdır ve öğretmen kimin neyi
+/// izlediğini görebilsin diye tutulur.
+model VideoProgress {
+  videoId       String
+  userId        String
+  /// En ileri izlenen an (saniye). Geri sarmak bu değeri düşürmez.
+  positionSec   Int      @default(0)
+  /// Kayıt anındaki video süresi; yüzde bunun üzerinden hesaplanır.
+  durationSec   Int      @default(0)
+  /// Videonun büyük bölümü ilk kez izlendiği an; izlenmediyse boş.
+  completedAt   DateTime?
+  lastWatchedAt DateTime @default(now())
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([videoId, userId])
+  @@index([userId])
+}
+
+model VideoGrade {
+  videoId    String
+  gradeLevel Int
+  folderId   String?
+  video      Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  folder     VideoFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@id([videoId, gradeLevel])
+  @@index([gradeLevel])
+  @@index([folderId])
+}
+
+/// Oyun türü. İçerik şekli türe göre değişir (bkz. src/modules/game/content.ts).
+enum GameType {
+  /// Metin içinde köşeli parantezle işaretlenmiş boşluklar.
+  BOSLUK
+  /// Çevrilen kartlar (ön yüz / arka yüz).
+  KART
+  /// Soldaki ile sağdakini eşleştirme.
+  ESLESTIRME
+  /// İpuçlarından kelime bulmaca (yerleşim otomatik üretilir).
+  BULMACA
+}
+
+/// Öğrenciler için alıştırma oyunu.
+///
+/// İçerik `content` alanında JSON olarak durur: her tür farklı bir şekle
+/// sahip ve zamanla yenileri eklenecek. Her tür için ayrı tablo açmak yerine
+/// şekli uygulama katmanında (zod ile) doğruluyoruz — yeni oyun türü eklemek
+/// veritabanı değişikliği gerektirmiyor.
+model Game {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        GameType
+  /// Türe özel içerik. Şekli src/modules/game/content.ts içinde tanımlı.
+  content     Json
+  /// İçerik Arapça ise oyun alanı sağdan sola akar.
+  isArabic    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  grades   GameGrade[]
+  progress GameProgress[]
+
+  @@index([isActive, sortOrder])
+}
+
+/// Öğrencinin bir oyundaki ilerlemesi. Öğrenci başına oyun başına tek satır.
+///
+/// Anket oylarının aksine bu kayıt BİLEREK kişiye bağlıdır: öğretmenin kimin
+/// hangi alıştırmayı yaptığını görebilmesi için tutuluyor.
+model GameProgress {
+  gameId      String
+  userId      String
+  /// En iyi sonuç (doğru sayısı) ve o oyundaki toplam soru sayısı.
+  bestCorrect Int      @default(0)
+  total       Int      @default(0)
+  /// Kaç kez oynandı.
+  attempts    Int      @default(0)
+  /// İlk kez eksiksiz tamamlandığı an; tamamlanmadıysa boş.
+  completedAt DateTime?
+  lastPlayedAt DateTime @default(now())
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, userId])
+  @@index([userId])
+}
+
+model GameGrade {
+  gameId     String
+  gradeLevel Int
+  game       Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, gradeLevel])
+  @@index([gradeLevel])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  isActive  Boolean  @default(true)
+  /// Yayın penceresi. Boş bırakılırsa o uçtan sınır yoktur:
+  /// startsAt boş = hemen başlar, endsAt boş = süresiz.
+  /// Öğrenciye görünürlük bu iki alana göre süzülür.
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  grades AnnouncementGrade[]
+
+  @@index([isActive, startsAt, endsAt])
+}
+
+model AnnouncementGrade {
+  announcementId String
+  gradeLevel     Int
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, gradeLevel])
+  @@index([gradeLevel])
+}
+
+model Survey {
+  id        String   @id @default(cuid())
+  question  String
+  /// string[] — seçenek metinleri, sırası optionIndex ile eşleşir.
+  options   Json
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  grades         SurveyGrade[]
+  votes          SurveyVote[]
+  participations SurveyParticipation[]
+}
+
+model SurveyGrade {
+  surveyId   String
+  gradeLevel Int
+  survey     Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@id([surveyId, gradeLevel])
+  @@index([gradeLevel])
+}
+
+/// ANONİM oy. userId TUTULMAZ ve tutulmamalıdır.
+/// createdAt bilerek gün başlangıcına yuvarlanır: SurveyParticipation ile zaman
+/// damgası eşleştirilerek kimin ne oyladığı geri çıkarılamasın diye.
+model SurveyVote {
+  id          String   @id @default(cuid())
+  surveyId    String
+  survey      Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  optionIndex Int
+  /// Gün hassasiyetine yuvarlanmış tarih.
+  votedOn     DateTime
+
+  @@index([surveyId, optionIndex])
+}
+
+/// "Bu kullanıcı bu ankete oy verdi mi" işareti. Oyun İÇERİĞİ burada tutulmaz.
+/// votedOn yine gün hassasiyetindedir (bkz. SurveyVote notu).
+model SurveyParticipation {
+  surveyId String
+  userId   String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votedOn  DateTime
+
+  @@id([surveyId, userId])
+}

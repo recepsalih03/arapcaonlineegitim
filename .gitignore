@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ortam dosyaları (.env.example hariç: kurulumda şablon olarak gerekiyor)
+.env
+.env*.local
+!.env.example
+
+# prisma generated client
+/src/generated
+
+# ffmpeg.wasm dosyalari (npm install / build sirasinda uretilir)
+/public/ffmpeg
+
+# yapay zeka asistanı dosyaları (repoya girmez)
+CLAUDE.md
+AGENTS.md
+.claude/

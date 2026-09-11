@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // npm install / build sırasında kopyalanan ffmpeg.wasm dosyaları.
+    // Bizim yazdığımız kod değil, derlenmiş üçüncü parti çıktı.
+    "public/ffmpeg/**",
+    // Prisma'nın ürettiği istemci.
+    "src/generated/**",
   ]),
 ]);
 

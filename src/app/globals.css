@@ -1,26 +1,330 @@
 @import "tailwindcss";
 
+/*
+ * Tema (PROJE.md §9): sade ve şık, hafif İslami renk paleti.
+ * Zümrüt/çam yeşili + altın vurgu + ferah beyaz zemin.
+ * Koyu tema bilinçli olarak yok: ders içeriği gündüz okunuyor, tek bir
+ * kalibre edilmiş palet hem sadeliği hem tutarlılığı koruyor.
+ */
+
+@theme {
+  /* Yeşil — ana renk */
+  --color-zumrut-50: #f0f8f4;
+  --color-zumrut-100: #daeee3;
+  --color-zumrut-200: #b7dcc9;
+  --color-zumrut-300: #87c2a7;
+  --color-zumrut-400: #55a380;
+  --color-zumrut-500: #348765;
+  --color-zumrut-600: #226b50;
+  --color-zumrut-700: #1b5541;
+  --color-zumrut-800: #174435;
+  --color-zumrut-900: #13382c;
+
+  /* Altın/bej — vurgu */
+  --color-altin-50: #fbf7ee;
+  --color-altin-100: #f5ecd4;
+  --color-altin-200: #ebd7a5;
+  --color-altin-300: #ddbc70;
+  --color-altin-400: #cfa249;
+  --color-altin-500: #b98833;
+  --color-altin-600: #9a6c29;
+  --color-altin-700: #7b5424;
+
+  /* Nötrler — hafif sıcak gri */
+  --color-kum-50: #fbfaf8;
+  --color-kum-100: #f4f2ed;
+  --color-kum-200: #e7e3da;
+  --color-kum-300: #d3cdc0;
+  --color-kum-400: #a9a294;
+  --color-kum-500: #7d766a;
+  --color-kum-600: #5c564d;
+  --color-kum-700: #423d37;
+  --color-kum-800: #2c2926;
+  --color-kum-900: #1c1a18;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+
+  --radius-card: 1rem;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-kum-50);
+  color: var(--color-kum-800);
+  font-family: var(--font-sans);
+  /* Mobilde yatay taşma olmasın (PROJE.md §8). */
+  overflow-x: hidden;
+}
+
+/*
+ * İnce geometrik İslami motif — çok düşük opaklıkta, yalnızca geniş
+ * yüzeylerde. Süs değil, zemine derinlik katmak için.
+ */
+.desen-zemin {
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-zumrut-700) 12%, transparent) 1px,
+      transparent 0
+    );
+  background-size: 22px 22px;
+}
+
+.desen-yesil {
+  background-color: var(--color-zumrut-800);
+  background-image:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, white 6%, transparent) 25%,
+      transparent 25%,
+      transparent 50%,
+      color-mix(in srgb, white 6%, transparent) 50%,
+      color-mix(in srgb, white 6%, transparent) 75%,
+      transparent 75%
+    );
+  background-size: 28px 28px;
+}
+
+/* Dokunmatik hedefler en az 44px (PROJE.md §8). */
+@media (pointer: coarse) {
+  button,
+  a[role="button"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 24px;
+  }
+}
+
+/*
+ * Ses sürgüsü yalnızca fare/trackpad olan cihazlarda. Dokunmatikte
+ * <video>.volume çoğu mobil tarayıcıda salt okunurdur (ses donanım tuşlarıyla
+ * ayarlanır); çalışmayan bir sürgü göstermek kullanıcıyı yanıltır.
+ */
+@media (pointer: coarse) {
+  .ses-surgusu {
+    display: none;
+  }
+}
+
+/* Video oynatıcıda seçim/sürükleme davranışını kıs (PROJE.md §2d). */
+video {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Hakkımızda gibi admin girişli HTML içerikler için okunabilir tipografi. */
+.zengin-metin :where(p) {
+  margin-block: 0.75rem;
+  line-height: 1.75;
+}
+.zengin-metin :where(h2) {
+  margin-block: 1.5rem 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-zumrut-800);
+}
+.zengin-metin :where(h3) {
+  margin-block: 1.25rem 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-zumrut-800);
+}
+.zengin-metin :where(ul, ol) {
+  margin-block: 0.75rem;
+  padding-inline-start: 1.5rem;
+  line-height: 1.75;
+}
+.zengin-metin :where(ul) {
+  list-style: disc;
+}
+.zengin-metin :where(ol) {
+  list-style: decimal;
+}
+.zengin-metin :where(a) {
+  color: var(--color-zumrut-600);
+  text-decoration: underline;
+}
+.zengin-metin :where(strong) {
+  font-weight: 600;
+  color: var(--color-kum-900);
+}
+
+/* RTL hazırlığı: Arapça devreye girdiğinde yön otomatik döner. */
+[dir="rtl"] .yon-duyarli {
+  transform: scaleX(-1);
+}
+
+/* ===========================================================================
+ * Oyun modülü
+ *
+ * Oyunlar sitenin geri kalanından bilerek daha canlı: çocuklar için hazırlanan
+ * bir alan burası. Animasyonların tamamı saf CSS — ek paket yok, bundle
+ * büyümüyor — ve hepsi prefers-reduced-motion'a saygı duyuyor.
+ * ======================================================================== */
+
+@theme {
+  /*
+   * Oyun paleti İznik çinilerinden alındı: firuze, çini laciverti, bolu
+   * kırmızısı (mercan), altın ve fıstık yeşili. Sitenin zümrüt/altın diliyle
+   * aynı aileden — canlı ama yabancı değil.
+   */
+  --color-oyun-firuze: #0e9594;
+  --color-oyun-lacivert: #1d5b8f;
+  --color-oyun-mercan: #c0553c;
+  --color-oyun-altin: #c9982f;
+  --color-oyun-fistik: #6f9d4a;
+  --color-oyun-zumrut: #1b6b4f;
+  /* Doğru/yanlış geri bildirimi de aynı aileden. */
+  --color-oyun-dogru: #1b8a5a;
+  --color-oyun-yanlis: #b8452f;
+}
+
+/* --- Anahtar kareler ---------------------------------------------------- */
+
+@keyframes oyun-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.15) rotate(-2deg); }
+  100% { transform: scale(1); }
+}
+@keyframes oyun-sarsil {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px) rotate(-1deg); }
+  40% { transform: translateX(7px) rotate(1deg); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+@keyframes oyun-yukari {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes oyun-konfeti {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translate(var(--kayma, 0), 70vh) rotate(var(--donus, 720deg)) scale(0.4); }
+}
+@keyframes oyun-suzul {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes oyun-zipla {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-14px) scale(1.08); }
+  60% { transform: translateY(0) scale(0.96); }
+}
+@keyframes oyun-parilti {
+  from { transform: translateX(-120%) skewX(-20deg); }
+  to { transform: translateX(220%) skewX(-20deg); }
+}
+@keyframes oyun-nabiz {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nabiz-renk, #7c5cff) 55%, transparent); }
+  70% { box-shadow: 0 0 0 12px transparent; }
+}
+@keyframes oyun-kayan-zemin {
+  from { background-position: 0 0; }
+  to { background-position: 52px 52px; }
+}
+@keyframes oyun-donen-isik {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes oyun-yildiz {
+  0% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.3) rotate(180deg); }
+  100% { opacity: 0; transform: scale(0.6) rotate(360deg); }
+}
+
+/* --- Yardımcı sınıflar -------------------------------------------------- */
+
+.oyun-pop { animation: oyun-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.oyun-sarsil { animation: oyun-sarsil 0.45s ease-in-out; }
+.oyun-yukari { animation: oyun-yukari 0.45s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+.oyun-suzul { animation: oyun-suzul 3s ease-in-out infinite; }
+.oyun-zipla { animation: oyun-zipla 0.7s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.oyun-nabiz { animation: oyun-nabiz 1.5s ease-out infinite; }
+.oyun-konfeti-parca { animation: oyun-konfeti 1.8s cubic-bezier(0.3, 0.6, 0.7, 1) forwards; }
+.oyun-yildiz { animation: oyun-yildiz 1.1s ease-out forwards; }
+
+/* Kartın üzerinden geçen ışık parıltısı (hover'da). */
+.oyun-parilti-kabi { position: relative; overflow: hidden; }
+.oyun-parilti-kabi::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent);
+  transform: translateX(-120%) skewX(-20deg);
+  pointer-events: none;
+}
+.oyun-parilti-kabi:hover::after,
+.oyun-parilti-kabi:focus-visible::after {
+  animation: oyun-parilti 0.85s ease-out;
+}
+
+/*
+ * Oyun yüzeylerinin dokusu: sekiz kollu yıldız (rub el-hizb) örgüsü.
+ * Sitenin logosundaki motifin aynısı — düz çizgi deseni yerine bunu
+ * kullanmak oyun alanını da aynı görsel dile bağlıyor.
+ */
+.oyun-zemin {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='52' viewBox='0 0 52 52'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.3' stroke-width='1.1'%3E%3Cpath d='M26 5l6.4 6.4h9V21l6.4 5-6.4 5v9.6h-9L26 47l-6.4-6.4h-9V31L4.2 26l6.4-5v-9.6h9z'/%3E%3Cpath d='M26 13.5l5 5h7v7l5 5.5-5 5.5v7h-7l-5 5-5-5h-7v-7l-5-5.5 5-5.5v-7h7z' stroke-opacity='0.16'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 52px 52px;
+  animation: oyun-kayan-zemin 16s linear infinite;
+}
+
+/* Başlık bandının arkasındaki dönen ışık. */
+.oyun-isik::before {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgb(255 255 255 / 0.2) 40deg,
+    transparent 90deg,
+    transparent 360deg
+  );
+  animation: oyun-donen-isik 7s linear infinite;
+  pointer-events: none;
+}
+
+/* Kart çevirme — 3B. */
+.kart-sahne { perspective: 1400px; }
+.kart-ic {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.kart-ic.cevrik { transform: rotateY(180deg); }
+.kart-yuz {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.kart-arka { transform: rotateY(180deg); }
+
+/* Hareket duyarlılığı olan kullanıcılar için hepsini kapat. */
+@media (prefers-reduced-motion: reduce) {
+  .oyun-pop,
+  .oyun-sarsil,
+  .oyun-yukari,
+  .oyun-suzul,
+  .oyun-zipla,
+  .oyun-nabiz,
+  .oyun-konfeti-parca,
+  .oyun-yildiz,
+  .oyun-zemin,
+  .oyun-isik::before,
+  .oyun-parilti-kabi:hover::after {
+    animation: none;
+  }
+  .kart-ic { transition: none; }
 }

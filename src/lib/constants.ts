@@ -1,6 +1,15 @@
 /** Platform genelinde kullanılan sabitler. */
 
 /**
+ * Sitenin üretimdeki adresi.
+ *
+ * Tek yerde duruyor çünkü üç yerde birden gerekiyor: sayfa metadata'sı,
+ * link üretiminin yedeği ve "npm run kontrol"un R2 CORS denemesi. Alan adı
+ * değişirse yalnızca burası düzeltilir.
+ */
+export const SITE_URL = "https://www.onlinearapcaozelders.com";
+
+/**
  * Desteklenen sınıf seviyeleri.
  *
  * 9. sınıf sonraki fazda eklenecek; buraya bir satır eklemek yeterli — sınıf

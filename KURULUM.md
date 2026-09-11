@@ -324,49 +324,41 @@ Tarayıcı dosyayı belleğe aldığı için 2,5 GB üstü dosyalar kabul edilmi
 1 GB üstünde de yavaşlayabilir. Uzun dersleri bölüm bölüm yüklemek hem sizin
 hem öğrencilerin işine yarar.
 
-## Adım 7 — Siteyi internete alın (Vercel) — ~20 dakika
+## Adım 7 — Siteyi internete alın (Vercel) — ~30 dakika
 
-Bu adımı sonraya bırakabilirsiniz; site bilgisayarınızda çalışırken de
-tamamını test edebilirsiniz.
+Kod GitHub'da hazır: **github.com/recepsalih03/arapcaonlineegitim**.
+Alan adı da alındı. Geriye üç iş kaldı: Vercel'e kurmak, alan adını
+yönlendirmek, sonucu doğrulamak.
 
-**7.1 — Kodu GitHub'a gönderin.**
+> **Veritabanı ve videolar zaten bulutta.** Neon ve R2 ilk günden internette
+> olduğu için yayına geçerken veri taşımıyorsunuz: öğrenciler, videolar,
+> duyurular olduğu gibi kalıyor. `db:deploy` / `db:seed` komutlarını **tekrar
+> çalıştırmayın**, tablolar ve admin hesabınız zaten yerinde.
 
-[github.com](https://github.com) → hesap açın → sağ üstte **+** → **New
-repository**:
+**7.1 — Vercel hesabı açın.**
 
-- **Repository name**: `arapca`
-- **Private** seçin (kodunuz herkese açık olmasın)
-- **Create repository**
+[vercel.com](https://vercel.com) → **Sign Up** → **Continue with GitHub** →
+GitHub hesabınızla izin verin. Hobby (ücretsiz) plan bu site için yeterli.
 
-Sonra terminalde (GitHub'ın gösterdiği adresi kullanarak):
+**7.2 — Projeyi içe aktarın.**
 
-```bash
-cd ~/Desktop/arapca
-git add .
-git commit -m "Online Arapca Ozel Ders platformu"
-git branch -M main
-git remote add origin https://github.com/KULLANICI-ADINIZ/arapca.git
-git push -u origin main
-```
+**Add New → Project** → listede `arapcaonlineegitim` deposunu bulup **Import**.
 
-> `.env` dosyanız bilerek gönderilmez — şifreleriniz GitHub'a çıkmaz.
+Framework'ü kendisi "Next.js" olarak tanır; **build ayarlarına dokunmayın.**
+Ama **Deploy'a basmadan önce** aşağıdaki **Environment Variables** bölümünü
+açın.
 
-**7.2 — Vercel'e bağlayın.**
+**7.3 — Ortam değişkenlerini girin.**
 
-[vercel.com](https://vercel.com) → **Sign up** → **Continue with GitHub** →
-**Add New → Project** → `arapca` deposunu **Import**.
-
-Ayarlara dokunmayın (Next.js'i kendi tanır), ama **deploy'a basmadan önce**
-**Environment Variables** bölümünü açın.
-
-**7.3 — Değişkenleri girin.** `.env` dosyanızdaki **her satırı** buraya tek tek
-ekleyin (`#` ile başlayan yorum satırları hariç):
+`.env` dosyanızı VS Code'da açın ve `#` ile başlayan yorum satırları hariç
+her satırı Vercel'e tek tek ekleyin (Name = eşittirden önceki kısım,
+Value = tırnakların içindeki değer):
 
 | Name | Value |
 |---|---|
 | `DATABASE_URL` | .env'deki değer |
 | `DIRECT_DATABASE_URL` | .env'deki değer |
-| `AUTH_SECRET` | .env'deki değer |
+| `AUTH_SECRET` | **yeni bir değer** (aşağıya bakın) |
 | `AUTH_TRUST_HOST` | `true` |
 | `R2_ACCOUNT_ID` | .env'deki değer |
 | `R2_ACCESS_KEY_ID` | .env'deki değer |
@@ -375,22 +367,119 @@ ekleyin (`#` ile başlayan yorum satırları hariç):
 | `R2_ENDPOINT` | .env'deki değer |
 | `MAX_DEVICES_PER_USER` | `4` |
 
-`SEED_ADMIN_*` satırlarını eklemenize gerek yok — onlar yalnızca yerelde
-kullanılıyor.
+`SEED_ADMIN_USERNAME` ve `SEED_ADMIN_PASSWORD` satırlarını **eklemeyin** —
+onlar yalnızca ilk admin hesabını oluştururken yerelde kullanıldı.
 
-**Deploy** deyin. Birkaç dakika sürer.
+`AUTH_SECRET` için yenisini üretin ve **yalnızca Vercel'e** yazın:
 
-**7.4 — Alan adını bağlayın.** Vercel'de proje → **Settings → Domains** →
-`www.onlinearapcaozelders.com` yazıp ekleyin. Vercel size DNS kayıtlarını
-gösterecek; alan adını aldığınız yerde (GoDaddy, Natro, Cloudflare...) o
-kayıtları girin.
+```bash
+openssl rand -base64 32
+```
 
-**7.5 — CORS'u güncelleyin.** Alan adınız yayına girince Cloudflare R2'deki
-CORS politikasında `AllowedOrigins` listesinin sitenizin **gerçek adresini**
-içerdiğinden emin olun (4.7'de zaten yazdık, ama farklı bir alan adı
-kullanıyorsanız düzeltin).
+> Neden yeni? Bu değer oturum çerezlerini imzalıyor. Yereldeki ile üretimdeki
+> ayrı olursa, birinin ele geçmesi diğerini etkilemez.
 
----
+**Deploy** deyin. 2–3 dakika sürer.
+
+**7.4 — Önce geçici adreste deneyin.**
+
+Vercel size `arapcaonlineegitim-xxxx.vercel.app` gibi bir adres verecek. Alan
+adına geçmeden önce burada şunları test edin:
+
+- Giriş yapabiliyor musunuz (admin ve bir öğrenci hesabıyla)
+- Bir video açılıyor mu (0:00'da kalmamalı)
+- Yönetim panelinde öğrenci/video listeleri geliyor mu
+
+Burada bir sorun varsa alan adını bağlamadan önce halledin; adres bağlıyken
+uğraşmak daha zor olur.
+
+**7.5 — Alan adını Vercel'e tanıtın.**
+
+Vercel'de proje → **Settings → Domains** → kutuya
+`www.onlinearapcaozelders.com` yazın → **Add**.
+
+Sonra aynı yere `onlinearapcaozelders.com` (www'suz hali) ekleyin ve Vercel'in
+sunduğu **Redirect to www.onlinearapcaozelders.com** seçeneğini işaretleyin.
+Böylece iki adres de aynı yere gider.
+
+Vercel şimdi size girmeniz gereken DNS kayıtlarını gösterecek. **Ekranda yazan
+değerleri kullanın**, başka bir rehberden gördüğünüz IP'yi değil — Vercel bu
+adresleri zaman zaman değiştiriyor. Genelde şu ikisi olur:
+
+| Tür | Ad (Host) | Değer |
+|---|---|---|
+| `CNAME` | `www` | Vercel'in gösterdiği adres (`...vercel-dns.com` ile biter) |
+| `A` | `@` | Vercel'in gösterdiği IP |
+
+**7.6 — Wix'te DNS kayıtlarını değiştirin.**
+
+Alan adını **Wix** üzerinden aldınız, yani şu an alan adı Wix'in sunucularını
+gösteriyor. Onu Vercel'e çevireceğiz.
+
+[wix.com](https://www.wix.com) → giriş yapın → sağ üstteki hesap menüsü →
+**Domains** → `onlinearapcaozelders.com` satırında **...** → **Manage DNS
+Records** (Türkçe arayüzde *DNS Kayıtlarını Yönet*).
+
+Burada:
+
+1. **CNAME bölümü** → `www` adına ait bir kayıt varsa **düzenleyin**, yoksa
+   **Add Record** ile ekleyin. Değeri Vercel'in verdiği `...vercel-dns.com`
+   adresi olacak.
+2. **A (Host) bölümü** → `@` adına ait kayıtlarda Wix'in IP'leri yazıyor.
+   Bunları silip Vercel'in verdiği IP'yi girin.
+3. Kaydedin. Wix "siteniz yayından kalkacak" gibi bir uyarı verirse onaylayın —
+   zaten Wix'te bir site yayınlamıyorsunuz.
+
+> **Alternatif ve daha temiz yol:** Wix'te **Advanced → Change Name Servers**
+> ile nameserver'ları Vercel'in verdiği `ns1.vercel-dns.com` /
+> `ns2.vercel-dns.com` adresleriyle değiştirebilirsiniz. O zaman tüm DNS
+> yönetimi Vercel'e geçer ve tek tek kayıt girmezsiniz. E-posta hizmeti
+> kullanmıyorsanız bu yol daha kolaydır.
+
+**Alan adını başka bir firmaya taşımayı şimdilik denemeyin:** ICANN kuralı
+gereği yeni alınmış bir `.com` 60 gün boyunca transfer edilemez. Zaten gerek de
+yok; DNS'i yönlendirmek yeterli.
+
+**7.7 — Bekleyin ve doğrulayın.**
+
+DNS değişikliği genelde 10 dakika–2 saat içinde yayılır (nadiren 24 saat).
+Vercel → **Settings → Domains** sayfasındaki uyarılar kendiliğinden yeşile
+döner ve SSL sertifikası otomatik kurulur — HTTPS için hiçbir şey yapmanıza
+gerek yok.
+
+Yeşile dönünce `https://www.onlinearapcaozelders.com` adresini açıp giriş ve
+video testini bir kez daha yapın.
+
+**7.8 — R2 CORS'u doğrulayın.**
+
+Videoların yayında da oynaması için R2'nin izin listesinde sitenizin adresi
+olmalı. Kontrol etmek için:
+
+```bash
+npm run kontrol
+```
+
+Çıktıda şu satırı arayın:
+
+```
+✓ CORS izinli — yayındaki site: https://www.onlinearapcaozelders.com
+```
+
+Kırmızıysa Cloudflare → R2 → bucket → **Settings → CORS Policy** →
+`AllowedOrigins` listesine bu adresi ekleyin.
+
+**7.9 — Bundan sonra nasıl güncelleme yapılır?**
+
+Kodda bir değişiklik olduğunda terminalde:
+
+```bash
+git add .
+git commit -m "değişikliğin kısa açıklaması"
+git push
+```
+
+Vercel push'u görüp siteyi kendisi yeniden yayınlar; başka bir şey yapmanız
+gerekmez.
 
 ## Telefondan test etmek
 
@@ -453,6 +542,10 @@ satır satır yazar. **Üretimde gerekmez**, orada sitenin alan adı yeterli.
 | "Video dönüştürücü dosyaları bulunamadı" | ffmpeg dosyaları kopyalanmamış | `npm run ffmpeg:varliklar` |
 | Telefonda giriş butonu çalışmıyor / sayfa donuk | Dev sunucusu LAN adresini engelliyor | Terminalde "Blocked cross-origin request" yazar; `DEV_ORIGINS` ile adresi ekleyip yeniden başlatın |
 | Dönüştürme çok yavaş | Tarayıcı hızlandırmayı kapatmış | Chrome veya Safari'nin güncel sürümünü kullanın |
+| Vercel'de "Domain is not configured" | DNS kayıtları henüz yayılmadı | 1–2 saat bekleyin; sürerse Wix'teki kaydın Vercel'in gösterdiği değerle birebir aynı olduğunu kontrol edin |
+| Alan adı hâlâ eski Wix sayfasını gösteriyor | Tarayıcı önbelleği veya eski A kaydı | Gizli sekmede deneyin; Wix'te `@` altındaki eski IP kayıtlarının silindiğinden emin olun |
+| Yayındaki sitede video 0:00'da kalıyor | R2 CORS listesinde alan adı yok | `npm run kontrol` → "yayındaki site" satırına bakın, kırmızıysa adresi CORS'a ekleyin |
+| Yayındaki sitede giriş yapılamıyor | Vercel'de `AUTH_SECRET` veya `AUTH_TRUST_HOST` eksik | Vercel → Settings → Environment Variables → ekleyip **Redeploy** edin |
 
 Takıldığınız yerde `npm run kontrol` çıktısının ekran görüntüsünü bana
 gönderin, nerede kaldığınızı oradan görebilirim.

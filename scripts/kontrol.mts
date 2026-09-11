@@ -12,6 +12,8 @@ import { readFileSync, existsSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import path from "node:path";
 
+import { SITE_URL } from "../src/lib/constants";
+
 /** Bu makinenin LAN adresleri — telefondan test için CORS'a eklenmesi gerekenler. */
 function yerelIpAdresleri(): string[] {
   const sonuc: string[] = [];
@@ -342,6 +344,7 @@ if (!env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !r2Kova || !r2Hesap) {
 
       const denenecekler = [
         { etiket: "bilgisayarınız", kaynak: "http://localhost:3000" },
+        { etiket: "yayındaki site", kaynak: SITE_URL },
         ...yerelIpAdresleri().map((ip) => ({
           etiket: "telefon (aynı Wi-Fi)",
           kaynak: `http://${ip}:3000`,
@@ -362,6 +365,11 @@ if (!env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !r2Kova || !r2Hesap) {
 
         if (izin === kaynak || izin === "*") {
           tamam(`CORS izinli — ${etiket}: ${kaynak}`);
+        } else if (kaynak === SITE_URL) {
+          hata(
+            `CORS izni YOK — yayındaki site: ${kaynak}`,
+            `Site yayına girdiğinde videolar oynatılmaz. R2 > bucket > Settings > CORS Policy > AllowedOrigins listesine "${kaynak}" satırını ekleyin.`,
+          );
         } else if (kaynak.includes("localhost")) {
           hata(
             `CORS izni YOK — ${kaynak}`,

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
+import { SITE_URL } from "@/lib/constants";
 import { DEFAULT_LOCALE, directionOf, getDictionary } from "@/lib/i18n";
 
 import "./globals.css";
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
   },
   description:
     "5, 6, 7 ve 8. sınıflar için online Arapça özel ders platformu. Sınıf seviyene özel ders videoları, duyurular ve anketler.",
-  metadataBase: new URL("https://www.onlinearapcaozelders.com"),
+  metadataBase: new URL(SITE_URL),
   robots: { index: true, follow: true },
 };
 

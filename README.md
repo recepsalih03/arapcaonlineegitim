@@ -1,91 +1,150 @@
 # Online Arapça Özel Ders Platformu
 
-`www.onlinearapcaozelders.com` için Next.js tabanlı, mobil öncelikli online ders
-platformu. Şartname: [PROJE.md](PROJE.md).
+Ortaokul öğrencilerine yönelik Arapça özel ders platformu.
+Öğretmen dersleri yükler, öğrenci kendi sınıfının videolarını izler ve
+alıştırmaları oynar. Arayüz tamamen Türkçe ve mobil önceliklidir.
 
----
+Yayın adresi: **www.onlinearapcaozelders.com** · Şartname: [PROJE.md](PROJE.md)
+· Sıfırdan kurulum: [KURULUM.md](KURULUM.md)
 
-## Ne var, ne yok
+## İçindekiler
 
-**Var:** öğrenci/admin girişi, zorunlu ilk-giriş akışı, 4 cihaz limiti,
-sınıf bazlı video erişimi, HLS ile korumalı video oynatma, girişsiz izlenen
-örnek video (sınıf başına 1), duyurular, anonim anketler, düzenlenebilir
-Hakkımızda sayfası, sınıf panelleri + genel panel.
+- [Özellikler](#özellikler)
+- [Teknolojiler](#teknolojiler)
+- [Hızlı başlangıç](#hızlı-başlangıç)
+- [Ortam değişkenleri](#ortam-değişkenleri)
+- [Servis ayarları](#servis-ayarları)
+- [Vercel'e dağıtım](#vercele-dağıtım)
+- [Komutlar](#komutlar)
+- [Proje yapısı](#proje-yapısı)
+- [Tasarım kararları](#tasarım-kararları)
+- [Kapsam dışı](#kapsam-dışı)
 
-**Oyun modülü:** dört tür — boşluk doldurma, kart (flashcard), eşleştirme ve
-bulmaca. Admin yönetim panelinden hazırlar, öğrenci kendi sınıfının oyunlarını
-oynar. İçerik `Game.content` alanında JSON olarak durur; şekli türe göre
-değişir ve `src/modules/game/content.ts` içinde zod ile doğrulanır, böylece yeni
-tür eklemek veritabanı değişikliği gerektirmez.
+## Özellikler
 
-Bulmaca ızgarası elle çizilmez: öğretmen kelime + ipucu girer,
-`src/modules/game/crossword.ts` yerleşimi ortak harflerden kesiştirerek üretir.
-Kesişecek harf bulunamayan kelimeler dışarıda kalır ve admin'e bildirilir.
+**Öğrenci tarafı**
 
-**Görsel dil:** oyun paleti İznik çinilerinden gelir — firuze, çini laciverti,
-bolu kırmızısı, altın ve fıstık yeşili. Sitenin zümrüt/altın diliyle aynı
-aileden: canlı ama yabancı değil. Kartların tamamı tür rengiyle boyanır (ince
-bir üst çizgi değil) ve zeminlerinde logodaki sekiz kollu yıldız (rub el-hizb)
-motifi döşenir. Tüm animasyonlar saf CSS (`globals.css` "Oyun modülü" bölümü):
-11 keyframe, ek paket yok, `prefers-reduced-motion` açıkken hepsi kapanır.
+- Kullanıcı adı + şifre ile giriş; ilk girişte şifre değiştirme zorunlu.
+- Bir hesap en fazla 4 cihazdan kullanılabilir (`MAX_DEVICES_PER_USER`).
+- Sadece kendi sınıfının (5–8) içeriğini görür.
+- Videolar klasörlere ayrılmış halde listelenir; kaldığı yerden devam eder.
+- Oyunlar: boşluk doldurma, kelime kartı, eşleştirme ve bulmaca.
+- Duyurular ve anonim anketler.
 
-**İlerleme:** öğrenci başına oyun başına tek satır (`GameProgress`) tutulur ve
-hep EN İYİ sonucu gösterir; sonraki kötü denemeler başarıyı silmez. Skor
-istemciden geldiği için (oyun tamamen tarayıcıda çalışıyor) "bu öğrenci bu
-alıştırmayı yaptı mı" sorusunun cevabı sayılmalı, sınav notu gibi değil.
+**Yönetim tarafı**
 
-**Yayın bayrağı:** `OYUNLAR_OGRENCIYE_ACIK` (`src/lib/constants.ts`) şu an
-`false`. Öğrenci menüsünde Oyunlar görünmüyor ve `/panel/oyun` adresleri 404
-dönüyor; admin oyunları hazırlayıp `/yonetim/oyunlar/<id>/onizle` ile
-deneyebiliyor (önizlemede ilerleme kaydedilmez). Yayına almak için bayrağı
-`true` yapmak yeterli.
+- Öğrenci ekleme, şifre sıfırlama, cihazları sıfırlama.
+- Video yükleme: dosya seçmek yeterli, dönüştürme tarayıcıda yapılır.
+- Sınıf başına ayrı video klasörleri (6. sınıfın "A Yayınevi" klasörü
+  7. sınıfınkinden bağımsızdır).
+- Kim neyi ne kadar izledi / hangi oyunu kaç puanla bitirdi raporu.
+- Başlangıç ve bitiş tarihi verilebilen duyurular, anketler.
+- Girişsiz izlenebilen tanıtım videosu (`/izle/<slug>`).
 
-**Yok (şartname gereği kapsam dışı):** gerçek DRM, site üzerinden ödeme,
-KVKK/iletişim sayfaları. Oyunlarda puan/ilerleme veritabanına kaydedilmiyor;
-sonuç öğrenciye anında gösteriliyor.
+**Video koruması**
 
----
+- HLS ile parça parça servis; tek parça indirilebilir dosya linki yok.
+- Playlist her istekte yeniden üretilir, parça linkleri 5 dakikada ölür.
+- Her oynatma isteğinde yetki ve cihaz oturumu yeniden doğrulanır.
+- R2 kovası public değil; erişim yalnızca imzalı isteklerle.
 
-## Kurulum
+## Teknolojiler
 
-Hesap açma dahil adım adım anlatım: **[KURULUM.md](KURULUM.md)**. Aşağısı özet.
+| Katman | Seçim |
+|---|---|
+| Çatı | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
+| Arayüz | Tailwind CSS v4, lucide ikonlar, saf CSS animasyonlar |
+| Veritabanı | PostgreSQL (Neon), Prisma 7 (`@prisma/adapter-pg`) |
+| Kimlik | Auth.js v5 (credentials + JWT), bcrypt |
+| Depolama | Cloudflare R2 (S3 uyumlu), imzalı PUT/GET |
+| Video | HLS, hls.js; dönüştürme tarayıcıda ffmpeg.wasm ile |
+| Barındırma | Vercel |
+
+## Hızlı başlangıç
+
+Gereken: Node.js 20+, bir Neon veritabanı ve bir Cloudflare R2 kovası.
+Hesap açmayı da içeren adım adım anlatım için [KURULUM.md](KURULUM.md).
 
 ```bash
 npm install
-cp .env.example .env      # sonra .env içini doldurun (aşağıya bakın)
-npm run kontrol           # neyin eksik olduğunu söyler
-npm run db:deploy         # tabloları oluşturur
-npm run db:seed           # admin hesabını oluşturur
-npm run dev               # http://localhost:3000
+# .env dosyasını oluşturun (aşağıdaki şablon)
+npm run kontrol     # neyin eksik olduğunu tek tek söyler
+npm run db:deploy   # tabloları oluşturur
+npm run db:seed     # admin hesabını oluşturur
+npm run dev         # http://localhost:3000
 ```
 
-`npm run kontrol` her adımdan sonra çalıştırabileceğiniz bir sağlık kontrolüdür:
-eksik ortam değişkenlerini, veritabanı bağlantısını, tabloların varlığını, admin
-hesabını ve R2 okuma/yazma iznini tek tek dener ve ne yapmanız gerektiğini yazar.
+`npm run kontrol` her adımdan sonra çalıştırılabilen bir sağlık kontrolüdür:
+ortam değişkenlerini, veritabanı bağlantısını, tabloların şemayla uyumunu,
+admin hesabını, R2 okuma/yazma iznini ve CORS ayarını dener; eksik olan her şey
+için ne yapılacağını yazar.
 
----
+## Ortam değişkenleri
 
-## 1. Veritabanı — Neon
+Proje kökünde `.env` dosyası oluşturup aşağıdakileri doldurun. Bu dosya git'e
+**girmez**; aynı değerleri Vercel'de de tanımlamanız gerekir.
 
-1. [neon.tech](https://neon.tech) üzerinde ücretsiz bir proje açın.
-2. **Connection string** bölümünden iki adresi kopyalayın:
-   - *Pooled connection* → `DATABASE_URL`
-   - *Direct connection* → `DIRECT_DATABASE_URL` (migration'lar bunu kullanır)
-3. `npm run db:deploy` ile tabloları oluşturun.
+```ini
+# --- Veritabanı (Neon / PostgreSQL) ---
+# Neon'un verdiği adreste sslmode=require yazar; verify-full yapın.
+DATABASE_URL="postgresql://kullanici:sifre@ep-xxxx-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=verify-full"
+# Migration'lar havuzsuz (direct) bağlantı ister.
+DIRECT_DATABASE_URL="postgresql://kullanici:sifre@ep-xxxx.eu-central-1.aws.neon.tech/neondb?sslmode=verify-full"
 
-> Şemayı değiştirdiğinizde: `npm run db:migrate` (yeni migration üretir).
+# --- Auth.js ---
+# Üretmek için: openssl rand -base64 32
+AUTH_SECRET=""
+AUTH_TRUST_HOST="true"
 
-## 2. Video deposu — Cloudflare R2
+# --- Cloudflare R2 ---
+R2_ACCOUNT_ID=""
+R2_ACCESS_KEY_ID=""
+R2_SECRET_ACCESS_KEY=""
+R2_BUCKET="arapca-videolar"
+R2_ENDPOINT="https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
 
-1. Cloudflare panelinde **R2 → Create bucket** (ör. `arapca-videolar`).
-   Bucket'ı **public yapmayın**; erişim yalnızca imzalı linklerle olacak.
-2. **R2 → Manage API Tokens → Create API Token**, yetki: *Object Read & Write*.
-   Çıkan değerleri `.env` içine yazın (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`).
-3. `R2_ACCOUNT_ID` Cloudflare panelinin sağ üstündeki Account ID'dir.
-4. **CORS ayarı zorunlu.** Tarayıcı hem yüklerken hem izlerken doğrudan R2'ye
-   bağlandığı için bucket'ın CORS politikası gerekir:
-   *Bucket → Settings → CORS Policy* altına şunu yapıştırın (adresleri kendi
-   alan adınızla değiştirin):
+# --- Uygulama ---
+MAX_DEVICES_PER_USER="4"
+# Yalnızca "npm run db:seed" okur.
+SEED_ADMIN_USERNAME="admin"
+SEED_ADMIN_PASSWORD=""
+```
+
+| Değişken | Zorunlu | Açıklama |
+|---|---|---|
+| `DATABASE_URL` | evet | Havuzlanmış (pooled) Postgres adresi; uygulama bunu kullanır |
+| `DIRECT_DATABASE_URL` | evet | Havuzsuz adres; yalnızca migration'lar kullanır |
+| `AUTH_SECRET` | evet | Oturum çerezlerini imzalar. Üretimde farklı olmalı |
+| `AUTH_TRUST_HOST` | evet | Vercel proxy'si arkasında gerekli |
+| `R2_ACCOUNT_ID` | evet | Cloudflare panelinin sağ üstündeki Account ID |
+| `R2_ACCESS_KEY_ID` | evet | R2 API token'ı (*Object Read & Write*) |
+| `R2_SECRET_ACCESS_KEY` | evet | Aynı token'ın gizli anahtarı |
+| `R2_BUCKET` | evet | Kova adı |
+| `R2_ENDPOINT` | evet | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` |
+| `MAX_DEVICES_PER_USER` | hayır | Varsayılan 4 |
+| `SEED_ADMIN_USERNAME` | hayır | Varsayılan `admin` |
+| `SEED_ADMIN_PASSWORD` | seed için | En az 10 karakter; `db:seed` dışında okunmaz |
+| `DEV_ORIGINS` | hayır | Geliştirmede telefondan erişim için ek adres |
+
+`AUTH_URL` **tanımlamayın**. `AUTH_TRUST_HOST=true` iken Auth.js adresi isteğin
+kendisinden okur; elle sabitlenirse önizleme dağıtımları ve farklı portlar
+yanlış adrese yönlenir.
+
+## Servis ayarları
+
+### Neon
+
+*Connection string* kutusundan iki adres kopyalanır: **Pooled** olan
+`DATABASE_URL`, **Direct** olan `DIRECT_DATABASE_URL`. Şema değiştiğinde
+`npm run db:migrate` yeni migration üretir, `npm run db:deploy` uygular.
+
+### Cloudflare R2
+
+Kovayı **public yapmayın**; erişim yalnızca imzalı linklerle olur.
+Token yetkisi *Object Read & Write* olmalı ve süresiz (TTL'siz) verilmeli.
+
+**CORS ayarı zorunludur.** Tarayıcı hem yüklerken hem izlerken doğrudan R2'ye
+bağlanır. *Bucket → Settings → CORS Policy*:
 
 ```json
 [
@@ -102,233 +161,202 @@ hesabını ve R2 okuma/yazma iznini tek tek dener ve ne yapmanız gerektiğini y
 ]
 ```
 
-CORS eksikse belirti şudur: video yükleme "yüklenemedi" hatası verir veya
-oynatıcı hiç başlamaz ("Video parçaları yüklenemedi").
+CORS eksikse belirti şudur: video yükleme "yüklenemedi" der ya da oynatıcı
+hiç başlamaz ("Video parçaları yüklenemedi").
 
-Liste **tam eşleşme** arar: şema, host ve port birebir aynı olmalı. Bu yüzden
-telefondan LAN adresiyle (`http://192.168.1.66:3000`) test edecekseniz o adresi
-de listeye eklemeniz gerekir — `localhost:3000` onu kapsamaz. `npm run kontrol`
-imzalı bir GET isteğini `Origin` başlığıyla atıp hangi adreslerin izinli
-olduğunu ölçer (R2 `GetBucketCors` çağrısına izin vermiyor, politikayı API'den
-okumak mümkün değil).
+Liste **tam eşleşme** arar — şema, host ve port birebir aynı olmalı. Telefondan
+LAN adresiyle (`http://192.168.1.66:3000`) test edecekseniz o adresi de eklemek
+gerekir; `localhost:3000` onu kapsamaz. `npm run kontrol` imzalı bir GET
+isteğini `Origin` başlığıyla atıp hangi adreslerin izinli olduğunu ölçer
+(R2 `GetBucketCors` çağrısına izin vermediği için politika API'den okunamıyor).
 
-## 3. Auth
+## Vercel'e dağıtım
 
-```bash
-openssl rand -base64 32     # çıktıyı AUTH_SECRET'e yazın
-```
-
-`AUTH_URL` **tanımlamayın**; `AUTH_TRUST_HOST=true` yeterlidir ve önizleme
-dağıtımlarında doğru adrese yönlenir.
-
-## 4. Vercel'e dağıtım
-
-1. Projeyi bir Git deposuna gönderip Vercel'de içe aktarın.
-2. Vercel → *Settings → Environment Variables* altına `.env` içindeki tüm
-   değişkenleri ekleyin.
-3. Build komutu değiştirilmesine gerek yok (`npm run build` Prisma client'ı da
-   üretir).
+1. Depoyu Vercel'de içe aktarın.
+2. *Settings → Environment Variables* altına `.env` içindeki tüm değişkenleri
+   ekleyin (`AUTH_SECRET` üretim için yeniden üretilmeli).
+3. Build komutunu değiştirmeye gerek yok; `npm run build` Prisma client'ı ve
+   ffmpeg dosyalarını da hazırlar.
 4. İlk dağıtımdan sonra bir kez `npm run db:deploy` ve `npm run db:seed`
-   çalıştırın (yerelden, üretim `DATABASE_URL`'i ile).
-
----
-
-## Video izleme ilerlemesi
-
-Öğrenci başına video başına tek satır (`VideoProgress`) tutulur ve hep EN İLERİ
-noktayı gösterir — geri sarıp bir yeri tekrar izlemek ilerlemeyi düşürmez.
-Videonun **%90'ı** izlenince "izledi" sayılır (`IZLENDI_ESIGI`); %100 beklemek
-gerçekçi değil, kapanış kısmını izlemeden çıkan öğrenci bitirmemiş sayılırdı.
-
-Kayıt 15 saniyede bir, duraklatınca, video bitince ve sayfa gizlenince
-(sekme kapatma dahil) gönderilir — sadece aralıklı kayıt yapılsaydı sekmeyi
-kapatan öğrencinin son ilerlemesi kaybolurdu.
-
-Öğrenci listede yüzde/"İzlendi" görür ve videoyu açtığında **kaldığı yerden**
-devam eder.
-
-Admin üç yerden bakabilir:
-- **Video sayfası** (`/yonetim/videolar/<id>`) — o videoyu kim nereye kadar izlemiş
-- **Video listesi** — her satırda "bitiren / izleyen" sayısı
-- **Öğrenci sayfası** (`/yonetim/ogrenciler/<id>`) — o öğrencinin sınıfındaki
-  tüm videolar ve oyunlardaki durumu. Hiç açılmamış içerikler de listede
-  ("Açmadı" / "Oynamadı"): öğretmenin asıl sorusu genelde "neyi izlemedi".
-
-Konum istemciden geldiği için (oynatma tarayıcıda) bu veri "öğrenci videoyu açtı
-ve şuraya kadar geldi" bilgisidir, izlediğinin ispatı değildir.
-
-## Neon uyku modu ve yeniden deneme
-
-Neon'un ücretsiz planı bir süre işlem olmayınca veritabanını uyutur; uyanması
-birkaç saniye sürdüğü için o aradaki **ilk sorgu** "Can't reach database server"
-ile patlardı — yani günün ilk ziyaretçisi hata görürdü.
-
-`src/lib/prisma.ts` bunu bir Prisma eklentisiyle çözer: yalnızca **bağlantı**
-hatalarında sorgu 400ms / 1.2s / 2.5s aralıklarla üç kez daha denenir. Veri
-hataları (benzersizlik ihlali, kayıt bulunamadı, yabancı anahtar) bilerek
-süzülür — onları tekrar denemek çift kayıt üretebilirdi.
-
-Kalıcı olarak tamamen kapatmak isterseniz Neon'un ücretli planında "scale to
-zero" kapatılabilir; uygulama tarafında yapılacak bir şey kalmadı.
-
-## Video yükleme akışı
-
-Vercel'de ağır ffmpeg işi çalışamaz, öğretmenden de terminale girmesi
-beklenemez. Bu yüzden dönüştürme **yükleyenin tarayıcısında** yapılır
-(ffmpeg.wasm) — sunucuya maliyet çıkmaz, kullanıcı hiçbir program kurmaz.
-
-Yönetim panelinde **Videolar → Video yükle → Video seç**; gerisi otomatik:
-
-1. `src/modules/video/browser-transcode.ts` dosyanın kodeklerini okur.
-2. Kodeklere göre en ucuz yolu seçer:
-   - **kopyala** — video H.264, ses AAC/MP3 ise yeniden kodlama YOK, yalnızca
-     HLS paketleme. Saniyeler sürer, kalite birebir korunur. Ders kayıtlarının
-     çoğu buraya düşer.
-   - **ses-kodla** — görüntü uyumlu, ses değil (ör. Opus). Sadece ses kodlanır.
-   - **tam-kodla** — görüntü tarayıcıda oynatılamıyor (ör. iPhone HEVC).
-     Yeniden kodlama şart; kullanıcıya süre tahmini gösterilip onay istenir.
-3. Parçalar presigned link ile **doğrudan R2'ye** yüklenir; büyük dosya
-   Vercel'e hiç uğramaz.
-
-Hızlı yol tökezlerse (bozuk/alışılmadık dosya) arayüz yeniden kodlamayı seçenek
-olarak sunar — sessizce saatler süren bir işe girmez.
-
-**ffmpeg dosyaları** (~32 MB) git'e girmez; `npm install` ve `npm run build`
-sırasında `scripts/ffmpeg-varliklari.mjs` ile `public/ffmpeg/<surum>/` altına
-kopyalanır. Elle çalıştırmak için: `npm run ffmpeg:varliklar`. Sürüm adreste yer
-aldığı için dosyalar bir yıl `immutable` önbelleklenebiliyor.
-
-### Neden tek çekirdekli ffmpeg?
-
-`@ffmpeg/core-mt` (çok çekirdekli) bilerek kullanılmıyor. Paketin kendi içinde
-tutarsızlık var: pthread işçilerini **klasik** worker olarak açıyor
-(`new Worker(url)`, tip belirtmeden) ama o worker dosyası çekirdeği dinamik
-`import()` ile yüklüyor — bu klasik worker'larda desteklenmiyor. İşçiler ayağa
-kalkamıyor, Emscripten'in `ready` sözü hiç çözülmüyor ve `@ffmpeg/ffmpeg` worker
-hatalarını dinlemediği için `load()` **sonsuza kadar** bekliyor: kullanıcı
-ekranda "hazırlanıyor" yazısıyla kalıyor, hata bile görmüyor.
-
-Tek çekirdekli çekirdek hiç worker açmıyor, `SharedArrayBuffer` istemiyor ve
-`export default` ile geliyor. Bedeli yalnızca yeniden kodlamanın yavaşlaması;
-kopyalama yolu zaten G/Ç'ye bağlı olduğu için çok çekirdekten fayda görmüyordu.
-
-Bu yüzden COOP/COEP başlıkları da kaldırıldı — yalnızca `SharedArrayBuffer`
-için gerekliydi ve gereksiz izolasyon ileride eklenecek dış kaynakları sessizce
-bloklardı. Ayrıca `ffmpeg.load()` bir zaman aşımıyla sarmalanıyor: beklenmedik
-bir arıza sessiz donma yerine anlaşılır bir hata versin diye.
-
----
-
-## Video koruması — beklenti yönetimi
-
-Uygulanan katmanlar (şartname §2):
-
-- Video HLS ile parça parça servis edilir; tek bir indirilebilir dosya linki yok.
-- Playlist her istekte yeniden üretilir, segment linkleri **5 dakikada** ölür.
-- Her oynatma isteğinde kullanıcı yetkisi ve cihaz oturumu yeniden doğrulanır.
-- R2 bucket'ı public değil; erişim yalnızca imzalı isteklerle.
-- Oynatıcıda sağ tık engeli, `controlsList="nodownload"`, video kaynağı MSE
-  üzerinden beslendiği için gerçek adres DOM'da durmaz.
-
-**Engellenemeyen:** ekran kaydı. Bu, gerçek DRM (Widevine/FairPlay) olmadan
-mümkün değildir ve şartname gereği kapsam dışıdır. Safari/iOS'ta HLS yerel
-oynatıldığı için playlist adresi `src` olarak verilmek zorundadır; adres yine
-kısa ömürlü ve yetki kontrollüdür.
-
----
-
-## Cihaz limiti — beklenti yönetimi
-
-Bir hesap en fazla **4 cihazdan** kullanılabilir (`MAX_DEVICES_PER_USER` ile
-değiştirilebilir). Cihaz ayrımı açık kaynak FingerprintJS ile yapılır ve
-**%100 kesin değildir** (şartname §12.2 kabulü):
-
-- Aynı bilgisayarda farklı tarayıcı → ayrı cihaz sayılabilir.
-- Tarayıcı güncellemesi parmak izini kaydırabilir.
-
-Bu yüzden iki kurtarma yolu var: öğrenci **Hesabım → Cihazlarım**'dan kendi
-cihazını silebilir; admin ise öğrenci satırındaki **Cihazları sıfırla** ile
-hepsini birden düşürebilir.
-
-**Cihaz kimliği girişin önüne geçmez.** Kimlik bir kez üretilip localStorage'a
-yazılır ve hep o kullanılır; kayıtlı kimlik yoksa FingerprintJS 3 saniye
-denenir, yetişmezse yerel rastgele kimliğe düşülür. Giriş butonu hiçbir koşulda
-kilitlenmez — önceki sürümde parmak izi telefonda takılınca öğrenci hiç giriş
-yapamıyordu. `crypto.randomUUID` bilerek kullanılmaz: yalnızca güvenli bağlamda
-tanımlı ve telefondan `http://192.168.x.x:3000` ile girildiğinde yoktur.
-
----
-
-## Proje yapısı
-
-```
-prisma/
-  schema.prisma            veri modeli
-  migrations/              SQL migration'ları
-  seed.ts                  ilk admin + Hakkımızda taslağı
-scripts/
-  ffmpeg-varliklari.mjs    ffmpeg.wasm dosyalarını public/'e kopyalar
-  kontrol.mts              kurulum sağlık kontrolü
-src/
-  app/
-    (ogrenci)/panel/       öğrenci paneli
-    (yonetim)/yonetim/     admin paneli (genel + sınıf panelleri)
-    api/                   auth, HLS playlist proxy, presigned upload
-    giris/ ilk-giris/      giriş ve zorunlu ilk-giriş akışı
-    izle/[slug]/           girişsiz örnek video
-  modules/                 iş mantığı — her alan ayrı modül
-    auth/ devices/ video/ announcements/ surveys/ students/ about/ game/
-  components/              ui/ layout/ admin/ video/ ...
-  lib/                     prisma, r2, i18n, sabitler, yardımcılar
-```
-
-**Modülerlik kuralı:** her modülde `service.ts` (veritabanı + iş kuralları) ve
-gerekiyorsa `actions.ts` (server action) bulunur. Sayfalar iş kuralı içermez,
-yalnızca modülleri çağırır. Oyun modülü için `src/modules/game/` ve
-`/panel/oyun` route'u hazır ama boştur.
-
-**Önbellek tazeleme:** hangi değişimde hangi sayfaların tazeleneceği
-`src/lib/revalidate.ts` içinde, tek yerde tanımlıdır. Her server action kendi
-listesini tuttuğunda birinin unuttuğu sayfa bayat kalıyordu. Dinamik sayfalar
-route kalıbıyla (`"/yonetim/videolar/[id]"`) tazelenir; klasör adı değişince o
-klasördeki bütün videoların sayfası etkilendiği için tek tek id saymak yetmez.
-Ayrıca düzenleme formları kaydettikten sonra `router.refresh()` çağırır:
-`revalidatePath` tek başına açık duran sayfayı güncellemiyor.
-
-**Sunucudan istemciye fonksiyon geçirilemez.** İkon bileşenleri (`SquarePen`
-gibi) birer fonksiyondur; sunucu bileşeninden istemci bileşenine prop olarak
-verilince sayfa "Only plain objects can be passed to Client Components" ile
-çöker. İki çözüm kullanılıyor: hook gerektirmeyen sarmalayıcılar istemci
-bileşeni YAPILMAZ (`ui/icon-link.tsx`), gerekenler ise ikonu bileşen değil
-**hazır element** olarak alır (`ikon={<Trash2 />}`).
-
-**Form alanları kontrollü olmalı.** Klasör kutusu önce `defaultValue` ile
-kontrolsüzdü; kaydettikten sonra sunucudan gelen render kutuyu eski değerle
-yeniden yazıyor, seçim ekranda kayboluyordu (kayıt aslında olmuştu).
-
-**Video klasörleri:** her klasör TEK BİR sınıfa aittir ve sınıf panelinden
-yönetilir; 6. sınıfın "A Yayınevi" klasörüyle 7. sınıfınki ayrı kayıtlardır.
-Klasör bilgisi `Video` üzerinde değil `VideoGrade` (video-sınıf eşleşmesi)
-üzerinde durur: bir video birden fazla sınıfa işaretlenebildiği için "videonun
-klasörü" diye tek bir cevap yok, sınıfı vermek gerekiyor.
-
-**i18n:** arayüz bugün tamamen Türkçe, ama metinler `src/lib/i18n/` altındaki
-sözlükten okunur ve yön (`dir`) tek yerden belirlenir — oyun modülüyle Arapça/RTL
-geldiğinde altyapı hazır.
-
----
+   çalıştırın (yerelden, üretim adresiyle).
+5. R2 CORS listesine üretim alan adınızı ekleyin.
 
 ## Komutlar
 
 | Komut | Ne yapar |
 |---|---|
-| `npm run kontrol` | Kurulum sağlık kontrolü (.env, DB, tablolar, R2) |
-| `npm run ffmpeg:varliklar` | ffmpeg.wasm dosyalarını public/ffmpeg'e kopyalar |
 | `npm run dev` | Geliştirme sunucusu |
-| `npm run build` | Üretim derlemesi (Prisma client dahil) |
+| `npm run build` | Üretim derlemesi (Prisma client + ffmpeg dosyaları dahil) |
+| `npm run kontrol` | Kurulum sağlık kontrolü (.env, DB, tablolar, R2, CORS) |
 | `npm run typecheck` | TypeScript kontrolü |
 | `npm run lint` | ESLint |
 | `npm run db:deploy` | Migration'ları uygular (üretim) |
 | `npm run db:migrate` | Yeni migration üretir (geliştirme) |
-| `npm run db:seed` | Admin hesabı + Hakkımızda taslağı |
+| `npm run db:seed` | İlk admin hesabını oluşturur |
 | `npm run db:studio` | Prisma Studio (veri görüntüleyici) |
+| `npm run ffmpeg:varliklar` | ffmpeg.wasm dosyalarını `public/ffmpeg`'e kopyalar |
+
+## Proje yapısı
+
+```
+prisma/
+  schema.prisma          veri modeli
+  migrations/            SQL migration'ları
+  seed.ts                ilk admin hesabı
+scripts/
+  kontrol.mts            kurulum sağlık kontrolü
+  ffmpeg-varliklari.mjs  ffmpeg.wasm dosyalarını public/'e kopyalar
+src/
+  app/
+    (ogrenci)/panel/     öğrenci paneli
+    (yonetim)/yonetim/   admin paneli (genel + sınıf panelleri)
+    api/                 auth, HLS playlist proxy, imzalı yükleme
+    giris/ ilk-giris/    giriş ve zorunlu ilk-giriş akışı
+    izle/[slug]/         girişsiz tanıtım videosu
+  modules/               iş mantığı: auth, devices, video, game,
+                         announcements, surveys, students
+  components/            ui/ layout/ admin/ video/ game/
+  lib/                   prisma, r2, i18n, sabitler, yardımcılar
+```
+
+**Modülerlik kuralı:** her modülde `service.ts` (veritabanı + iş kuralları),
+gerekiyorsa `actions.ts` (server action) bulunur. Sayfalar iş kuralı içermez,
+yalnızca modülleri çağırır.
+
+## Tasarım kararları
+
+Aşağıdakiler "neden böyle yapıldı" notlarıdır; hepsi bir hatanın ya da bir
+kısıtın sonucudur.
+
+### Video dönüştürme neden tarayıcıda?
+
+Vercel'de ağır ffmpeg işi çalışamaz, öğretmenden de terminale girmesi
+beklenemez. Bu yüzden dönüştürme yükleyenin tarayıcısında yapılır: sunucuya
+maliyet çıkmaz, kullanıcı hiçbir program kurmaz.
+
+`src/modules/video/browser-transcode.ts` önce dosyanın kodeklerini okur ve en
+ucuz yolu seçer:
+
+- **kopyala** — video H.264, ses AAC/MP3 ise yeniden kodlama yok, yalnızca HLS
+  paketleme. Saniyeler sürer, kalite birebir korunur. Ders kayıtlarının çoğu
+  buraya düşer.
+- **ses-kodla** — görüntü uyumlu, ses değil (ör. Opus). Yalnızca ses kodlanır.
+- **tam-kodla** — görüntü tarayıcıda oynatılamıyor (ör. iPhone HEVC). Yeniden
+  kodlama şart; kullanıcıya süre tahmini gösterilip onay istenir.
+
+Parçalar imzalı linkle doğrudan R2'ye yüklenir; büyük dosya Vercel'e hiç
+uğramaz. ffmpeg dosyaları (~32 MB) git'e girmez, `npm install` ve
+`npm run build` sırasında `public/ffmpeg/<surum>/` altına kopyalanır.
+
+**Neden tek çekirdekli ffmpeg?** `@ffmpeg/core-mt` paketinin kendi içinde
+tutarsızlık var: pthread işçilerini klasik worker olarak açıyor ama o worker
+çekirdeği dinamik `import()` ile yüklüyor — klasik worker'larda desteklenmiyor.
+İşçiler ayağa kalkamıyor, Emscripten'in `ready` sözü hiç çözülmüyor ve
+`@ffmpeg/ffmpeg` worker hatalarını dinlemediği için `load()` sonsuza kadar
+bekliyor; kullanıcı "hazırlanıyor" yazısıyla kalıyor, hata bile görmüyor. Tek
+çekirdekli çekirdek worker açmıyor, `SharedArrayBuffer` istemiyor. Bedeli
+yalnızca yeniden kodlamanın yavaşlaması; kopyalama yolu zaten G/Ç'ye bağlı.
+Bu yüzden COOP/COEP başlıkları da kaldırıldı.
+
+### İlerleme kayıtları ne anlama geliyor?
+
+Video için öğrenci başına video başına tek satır (`VideoProgress`) tutulur ve
+hep **en ileri** nokta gösterilir — geri sarmak ilerlemeyi düşürmez. Videonun
+%90'ı izlenince "izledi" sayılır (`IZLENDI_ESIGI`); %100 beklemek gerçekçi
+değildi, kapanışı izlemeden çıkan öğrenci bitirmemiş sayılıyordu.
+
+Kayıt 15 saniyede bir, duraklatınca, video bitince ve sayfa gizlenince
+gönderilir. Sadece aralıklı kayıt yapılsaydı sekmeyi kapatan öğrencinin son
+ilerlemesi kaybolurdu.
+
+Oyunda ise (`GameProgress`) hep **en iyi** sonuç saklanır; sonraki kötü
+denemeler başarıyı silmez.
+
+Her iki veri de istemciden geldiği için (oynatma ve oyun tarayıcıda çalışıyor)
+"öğrenci bunu açtı ve şuraya kadar geldi" bilgisidir — sınav notu gibi
+değerlendirilmemelidir.
+
+### Neon uyku modu
+
+Neon'un ücretsiz planı işlem olmayınca veritabanını uyutur; uyanması birkaç
+saniye sürdüğü için o aradaki ilk sorgu "Can't reach database server" ile
+patlardı — günün ilk ziyaretçisi hata görürdü.
+
+`src/lib/prisma.ts` bunu bir Prisma eklentisiyle çözer: yalnızca **bağlantı**
+hatalarında sorgu 400 ms / 1,2 sn / 2,5 sn aralıklarla üç kez daha denenir. Veri
+hataları (benzersizlik ihlali, kayıt bulunamadı, yabancı anahtar) bilerek
+süzülür — onları tekrar denemek çift kayıt üretebilirdi.
+
+### Cihaz limiti kesin değildir
+
+Cihaz ayrımı açık kaynak FingerprintJS ile yapılır ve %100 kesin değildir:
+aynı bilgisayarda farklı tarayıcı ayrı cihaz sayılabilir, tarayıcı güncellemesi
+parmak izini kaydırabilir. Bu yüzden iki kurtarma yolu var: öğrenci
+**Hesabım → Cihazlarım**'dan kendi cihazını silebilir, admin ise öğrenci
+satırındaki **Cihazları sıfırla** ile hepsini birden düşürür.
+
+**Cihaz kimliği girişin önüne geçmez.** Kimlik bir kez üretilip localStorage'a
+yazılır; kayıtlı kimlik yoksa FingerprintJS 3 saniye denenir, yetişmezse yerel
+rastgele kimliğe düşülür. Giriş butonu hiçbir koşulda kilitlenmez — önceki
+sürümde parmak izi telefonda takılınca öğrenci hiç giriş yapamıyordu.
+`crypto.randomUUID` bilerek kullanılmaz: yalnızca güvenli bağlamda tanımlıdır
+ve telefondan `http://192.168.x.x:3000` ile girildiğinde yoktur.
+
+### Video klasörleri neden `VideoGrade` üzerinde?
+
+Her klasör tek bir sınıfa aittir ve sınıf panelinden yönetilir. Bir video birden
+fazla sınıfa işaretlenebildiği için "videonun klasörü" diye tek bir cevap yok;
+klasör bilgisi bu yüzden `Video` üzerinde değil, video-sınıf eşleşmesinde
+(`VideoGrade`) durur. Böylece aynı video 5. sınıfta başka, 6. sınıfta başka bir
+klasörde görünebiliyor.
+
+### Oyun içeriği neden JSON?
+
+Dört tür var: boşluk doldurma, kart, eşleştirme, bulmaca. İçerik `Game.content`
+alanında JSON olarak durur ve `src/modules/game/content.ts` içinde zod ile
+doğrulanır; yeni tür eklemek veritabanı değişikliği gerektirmez.
+
+Bulmaca ızgarası elle çizilmez: öğretmen kelime + ipucu girer,
+`src/modules/game/crossword.ts` yerleşimi ortak harflerden kesiştirerek üretir.
+Kesişecek harf bulunamayan kelimeler dışarıda kalır ve admin'e bildirilir.
+
+Görsel dil İznik çinilerinden gelir — firuze, çini laciverti, bolu kırmızısı,
+altın, fıstık yeşili. Tüm animasyonlar saf CSS'tir (`globals.css`), ek paket
+yoktur ve `prefers-reduced-motion` açıkken hepsi kapanır.
+
+### Önbellek tazeleme tek yerden
+
+Hangi değişimde hangi sayfaların tazeleneceği `src/lib/revalidate.ts` içinde
+tanımlıdır. Her server action kendi listesini tuttuğunda birinin unuttuğu sayfa
+bayat kalıyordu. Dinamik sayfalar route kalıbıyla (`"/yonetim/videolar/[id]"`)
+tazelenir; klasör adı değişince o klasördeki bütün videoların sayfası
+etkilendiği için tek tek id saymak yetmiyor. Düzenleme formları ayrıca
+`router.refresh()` çağırır: `revalidatePath` tek başına açık duran sayfayı
+güncellemiyor.
+
+### Sunucudan istemciye fonksiyon geçirilemez
+
+İkon bileşenleri (`SquarePen` gibi) birer fonksiyondur; sunucu bileşeninden
+istemci bileşenine prop olarak verilince sayfa "Only plain objects can be passed
+to Client Components" ile çöker. İki çözüm kullanılıyor: hook gerektirmeyen
+sarmalayıcılar istemci bileşeni **yapılmaz** (`ui/icon-link.tsx`), gerekenler
+ise ikonu bileşen değil hazır **element** olarak alır (`ikon={<Trash2 />}`).
+
+### i18n altyapısı
+
+Arayüz bugün tamamen Türkçe, ama metinler `src/lib/i18n/` altındaki sözlükten
+okunur ve yön (`dir`) tek yerden belirlenir; Arapça/RTL içerik geldiğinde
+altyapı hazır.
+
+## Kapsam dışı
+
+Şartname gereği yapılmayanlar:
+
+- **Gerçek DRM (Widevine/FairPlay).** Yukarıdaki katmanlar videoyu indirmeyi
+  zorlaştırır ama **ekran kaydını engellemez**; bu DRM olmadan mümkün değildir.
+  Safari/iOS'ta HLS yerel oynatıldığı için playlist adresi `src` olarak
+  verilmek zorundadır — adres yine kısa ömürlü ve yetki kontrollüdür.
+- Site üzerinden ödeme.
+- KVKK ve iletişim sayfaları.
+- Hakkımızda sayfası bilerek boştur; metin verilince doğrudan
+  `src/app/hakkimizda/page.tsx` içine yazılacaktır.

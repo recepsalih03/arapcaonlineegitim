@@ -83,7 +83,10 @@ baslik("1. .env dosyası");
 
 const envYolu = path.join(KOK, ".env");
 if (!existsSync(envYolu)) {
-  hata(".env dosyası yok.", "Şu komutu çalıştırın: cp .env.example .env");
+  hata(
+    ".env dosyası yok.",
+    "README.md'deki \"Ortam değişkenleri\" şablonunu kopyalayıp proje kökünde .env olarak kaydedin.",
+  );
   console.log("\nDevam edilemiyor. Önce .env dosyasını oluşturun.");
   process.exit(1);
 }

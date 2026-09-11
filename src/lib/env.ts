@@ -10,7 +10,7 @@ function required(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(
-      `Ortam değişkeni eksik: ${name}. .env.example dosyasını .env olarak kopyalayıp doldurun.`,
+      `Ortam değişkeni eksik: ${name}. Proje kökündeki .env dosyasına ekleyin (şablon: README.md).`,
     );
   }
   return value;

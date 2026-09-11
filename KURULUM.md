@@ -70,8 +70,12 @@ açık; değilse şu komutla açın:
 open -a "Visual Studio Code" .env
 ```
 
-9. satırdaki `DATABASE_URL=""` satırını bulun ve **tırnakların arasına**
-yapıştırın:
+> Proje klasöründe `.env` dosyası yoksa (ör. projeyi GitHub'dan yeni
+> indirdiyseniz) önce oluşturun: [README.md](README.md#ortam-değişkenleri)
+> içindeki "Ortam değişkenleri" şablonunu kopyalayıp `.env` adıyla kaydedin.
+> Bu dosya gizli bilgiler içerdiği için GitHub'a hiç gönderilmez.
+
+`DATABASE_URL=""` satırını bulun ve **tırnakların arasına** yapıştırın:
 
 ```
 DATABASE_URL="postgresql://neondb_owner:npg_AbC123xyz@ep-cool-sun-12345678-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=verify-full"

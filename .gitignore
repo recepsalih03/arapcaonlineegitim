@@ -40,10 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# ortam dosyaları (.env.example hariç: kurulumda şablon olarak gerekiyor)
+# ortam dosyaları — hiçbiri repoya girmez
 .env
 .env*.local
-!.env.example
 
 # prisma generated client
 /src/generated

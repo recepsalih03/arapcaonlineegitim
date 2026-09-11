@@ -23,6 +23,7 @@ import { EMPTY_ACTION_STATE } from "@/lib/forms";
 import { formatDuration } from "@/lib/utils";
 import { createVideoAction } from "@/modules/video/actions";
 import {
+  CekirdekBaslatilamadi,
   hlseDonustur,
   incele,
   serbestBirak,
@@ -299,8 +300,18 @@ export function VideoUploader({
       // Hızlı yol (kopyalama) bazı bozuk ya da alışılmadık dosyalarda
       // tökezleyebiliyor. Kullanıcıyı çıkmazda bırakmak yerine yavaş ama
       // her şeyi kabul eden yolu öner — kararı yine kullanıcı versin.
-      const yuklemeHatasi = mesaj.includes("yüklenemedi") || mesaj.includes("CORS");
-      if (plan.mod !== "tam-kodla" && !yuklemeHatasi) {
+      //
+      // Ama bu öneri YALNIZCA dosyadan kaynaklanan hatalar için anlamlı.
+      // Dönüştürücü hiç açılamadıysa yeniden kodlama da aynı yerde patlar;
+      // üstelik kullanıcıya "iPhone biçimi" gibi alakasız bir tavsiye ve
+      // uydurma bir süre tahmini gösteriliyordu. Önceden bu ayrım metin
+      // araması ile yapılıyordu ve tarayıcının ham hatası ("Load failed")
+      // hiçbir kalıba uymadığı için yanlış tarafa düşüyordu.
+      const cekirdekHatasi =
+        hata instanceof CekirdekBaslatilamadi ||
+        mesaj.includes("yüklenemedi") ||
+        mesaj.includes("CORS");
+      if (plan.mod !== "tam-kodla" && !cekirdekHatasi) {
         setDurum({
           ad: "onay-bekliyor",
           bilgi,

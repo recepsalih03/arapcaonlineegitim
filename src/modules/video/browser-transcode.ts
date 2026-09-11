@@ -8,6 +8,22 @@ import type { FFFSType } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
 /**
+ * Dönüştürücünün kendisi ayağa kalkamadığında atılır (dosyalar sunulmuyor,
+ * indirme koptu, worker açılamadı...).
+ *
+ * Videonun içeriğiyle ilgisi YOK. Ayrı bir tür olmasının sebebi: arayüz bunu
+ * "bu dosya olduğu gibi paketlenemedi, yeniden kodlayalım" hatasıyla
+ * karıştırıp anlamsız bir öneri sunuyordu — çekirdek yüklenmediyse yeniden
+ * kodlama da aynı yerde patlar.
+ */
+export class CekirdekBaslatilamadi extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CekirdekBaslatilamadi";
+  }
+}
+
+/**
  * Videoyu TARAYICIDA HLS'e çevirir (ffmpeg.wasm).
  *
  * Neden burada: Vercel'de ağır ffmpeg işi çalıştırılamıyor, öğretmenin de
@@ -144,7 +160,7 @@ async function ffmpegGetir(
   // gibi anlamsız değil, ne yapılacağını söyleyen bir şey olsun.
   const denetim = await fetch(adres.js, { method: "HEAD" }).catch(() => null);
   if (!denetim?.ok) {
-    throw new Error(
+    throw new CekirdekBaslatilamadi(
       "Video dönüştürücü dosyaları sunucuda bulunamadı. " +
         'Terminalde "npm run ffmpeg:varliklar" çalıştırın.',
     );
@@ -176,7 +192,7 @@ async function ffmpegGetir(
   } catch (hata) {
     // Takılı kalmış worker'ı bırakma.
     ffmpeg.terminate();
-    throw new Error(
+    throw new CekirdekBaslatilamadi(
       "Video dönüştürücü başlatılamadı. Sayfayı yenileyip tekrar deneyin; " +
         "sorun sürerse tarayıcınızı güncelleyin veya Chrome ile deneyin." +
         (hata instanceof Error ? `\n\n(${hata.message})` : ""),
@@ -206,15 +222,42 @@ async function onbellegeAl(
   }
   if (!yanit.ok || !yanit.body) return;
 
+  await akisiTuket(yanit, ilerleme);
+}
+
+/**
+ * Yanıt gövdesini sonuna kadar okur ve ilerlemeyi bildirir.
+ *
+ * HİÇBİR KOŞULDA HATA ATMAZ — çağıran taraf için bu iş "en iyi çaba"dır.
+ * Önceden okuma döngüsü korumasızdı: 32 MB'lık çekirdek CDN'den inerken akış
+ * koparsa read() reddediyor ve tarayıcının ham mesajı ("Load failed") ta
+ * arayüze kadar çıkıyordu. Kullanıcı da videosunda bir sorun olduğunu sanıp
+ * gereksiz yere yeniden kodlamaya yönlendiriliyordu.
+ *
+ * Test edilebilsin diye dışa açık.
+ */
+export async function akisiTuket(
+  yanit: Response,
+  ilerleme?: (oran: number) => void,
+): Promise<void> {
+  if (!yanit.body) return;
+
   const toplam = Number(yanit.headers.get("content-length") ?? 0);
   const okuyucu = yanit.body.getReader();
   let inen = 0;
 
-  for (;;) {
-    const { done, value } = await okuyucu.read();
-    if (done) break;
-    inen += value.byteLength;
-    if (toplam > 0) ilerleme?.(Math.min(0.99, inen / toplam));
+  try {
+    for (;;) {
+      const { done, value } = await okuyucu.read();
+      if (done) break;
+      inen += value.byteLength;
+      if (toplam > 0) ilerleme?.(Math.min(0.99, inen / toplam));
+    }
+  } catch {
+    // Yarım kalan indirme işe yaramaz ama zararı da yok: load() kendi
+    // denemesini yapacak. Okuyucuyu serbest bırakıp sessizce çekiliyoruz.
+    await okuyucu.cancel().catch(() => undefined);
+    return;
   }
 
   ilerleme?.(1);

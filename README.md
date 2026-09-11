@@ -189,6 +189,7 @@ isteğini `Origin` başlığıyla atıp hangi adreslerin izinli olduğunu ölçe
 | `npm run build` | Üretim derlemesi (Prisma client + ffmpeg dosyaları dahil) |
 | `npm run kontrol` | Kurulum sağlık kontrolü (.env, DB, tablolar, R2, CORS) |
 | `npm run typecheck` | TypeScript kontrolü |
+| `npm test` | Birim testleri |
 | `npm run lint` | ESLint |
 | `npm run db:deploy` | Migration'ları uygular (üretim) |
 | `npm run db:migrate` | Yeni migration üretir (geliştirme) |

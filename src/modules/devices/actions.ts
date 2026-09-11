@@ -32,6 +32,7 @@ export async function removeOwnDeviceAction(
   }
 
   revalidatePath("/panel/hesabim");
+  revalidatePath("/yonetim/hesabim");
   revalidatePath("/yonetim/ogrenciler/[id]", "page");
   return { success: "Cihaz silindi. O cihazdaki oturum sonlandırıldı." };
 }

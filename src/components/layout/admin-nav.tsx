@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Megaphone,
   MonitorPlay,
+  UserCog,
   Users,
   Vote,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const SECTIONS = [
   { href: "/yonetim/duyurular", label: "Duyurular", icon: Megaphone },
   { href: "/yonetim/anketler", label: "Anketler", icon: Vote },
   { href: "/yonetim/oyunlar", label: "Oyunlar", icon: Gamepad2 },
+  { href: "/yonetim/hesabim", label: "Hesabım", icon: UserCog },
 ];
 
 function linkClasses(active: boolean) {

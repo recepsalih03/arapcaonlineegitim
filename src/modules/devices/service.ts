@@ -1,6 +1,8 @@
 import "server-only";
 
 import type { DeviceSession } from "@/generated/prisma/client";
+import type { Role } from "@/generated/prisma/enums";
+import { ADMIN_MAX_DEVICES } from "@/lib/constants";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
@@ -19,8 +21,12 @@ export type DeviceRegistrationResult =
   | { ok: true; session: DeviceSession }
   | { ok: false; reason: "device_limit"; activeCount: number; max: number };
 
-export function maxDevices(): number {
-  return env.maxDevicesPerUser;
+/**
+ * Role göre aktif cihaz limiti. Admin için sabit (ADMIN_MAX_DEVICES),
+ * öğrenci için ortam değişkeninden (varsayılan 4).
+ */
+export function maxDevices(role: Role = "STUDENT"): number {
+  return role === "ADMIN" ? ADMIN_MAX_DEVICES : env.maxDevicesPerUser;
 }
 
 export async function countActiveDevices(userId: string): Promise<number> {
@@ -43,13 +49,14 @@ export async function listDevices(userId: string): Promise<DeviceSession[]> {
  */
 export async function registerDevice(params: {
   userId: string;
+  role: Role;
   fingerprint: string;
   deviceLabel: string;
   userAgent: string | null;
   ipHint: string | null;
 }): Promise<DeviceRegistrationResult> {
-  const { userId, fingerprint, deviceLabel, userAgent, ipHint } = params;
-  const max = maxDevices();
+  const { userId, role, fingerprint, deviceLabel, userAgent, ipHint } = params;
+  const max = maxDevices(role);
 
   const existing = await prisma.deviceSession.findUnique({
     where: { userId_fingerprint: { userId, fingerprint } },

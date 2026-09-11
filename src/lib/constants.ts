@@ -40,6 +40,12 @@ export function gradeLabel(grade: number): string {
 export const DEFAULT_MAX_DEVICES = 4;
 
 /**
+ * Admin hesabının cihaz limiti öğrenciden yüksek: öğretmen birden fazla cihazdan
+ * (masaüstü, dizüstü, tablet, telefon...) yönetim paneline girebilsin diye.
+ */
+export const ADMIN_MAX_DEVICES = 6;
+
+/**
  * Oyun modülü öğrencilere açık mı?
  *
  * true: öğrenci menüsünde "Oyunlar" görünür ve /panel/oyun adresleri açılır.

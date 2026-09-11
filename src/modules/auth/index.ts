@@ -77,6 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const registration = await registerDevice({
           userId: user.id,
+          role: user.role,
           fingerprint,
           deviceLabel: deviceLabelFromUserAgent(userAgent),
           userAgent,

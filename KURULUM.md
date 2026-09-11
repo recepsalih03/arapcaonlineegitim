@@ -545,6 +545,7 @@ satır satır yazar. **Üretimde gerekmez**, orada sitenin alan adı yeterli.
 | Vercel'de "Domain is not configured" | DNS kayıtları henüz yayılmadı | 1–2 saat bekleyin; sürerse Wix'teki kaydın Vercel'in gösterdiği değerle birebir aynı olduğunu kontrol edin |
 | Alan adı hâlâ eski Wix sayfasını gösteriyor | Tarayıcı önbelleği veya eski A kaydı | Gizli sekmede deneyin; Wix'te `@` altındaki eski IP kayıtlarının silindiğinden emin olun |
 | Yayındaki sitede video 0:00'da kalıyor | R2 CORS listesinde alan adı yok | `npm run kontrol` → "yayındaki site" satırına bakın, kırmızıysa adresi CORS'a ekleyin |
+| Yayındaki sitede video yüklenemiyor ("bağlanılamadı", "Load failed") | Sitenin o anki adresi R2 CORS listesinde yok — geçici `...vercel.app` adresinde çalışırken sık olur | Hata mesajında yazan adresi R2 > Settings > CORS Policy > AllowedOrigins listesine ekleyin |
 | Yayındaki sitede giriş yapılamıyor | Vercel'de `AUTH_SECRET` veya `AUTH_TRUST_HOST` eksik | Vercel → Settings → Environment Variables → ekleyip **Redeploy** edin |
 
 Takıldığınız yerde `npm run kontrol` çıktısının ekran görüntüsünü bana

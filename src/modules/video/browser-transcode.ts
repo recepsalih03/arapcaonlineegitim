@@ -352,7 +352,7 @@ export function planla(bilgi: MedyaBilgisi): DonusturmePlani {
 export async function incele(
   dosya: File,
   asama?: (a: Asama) => void,
-): Promise<{ bilgi: MedyaBilgisi; plan: DonusturmePlani; girdiAdi: string }> {
+): Promise<{ bilgi: MedyaBilgisi; plan: DonusturmePlani }> {
   const ffmpeg = await ffmpegGetir((oran) =>
     asama?.({ ad: "cekirdek-indiriliyor", oran }),
   );
@@ -372,7 +372,7 @@ export async function incele(
     );
   }
 
-  return { bilgi, plan: planla(bilgi), girdiAdi };
+  return { bilgi, plan: planla(bilgi) };
 }
 
 /**
@@ -389,6 +389,9 @@ export async function incele(
 async function girdiyiBagla(ffmpeg: FFmpeg, dosya: File): Promise<string> {
   try {
     await ffmpeg.createDir(GIRDI_KLASORU).catch(() => undefined);
+    // Aynı klasör ikinci kez bağlanamaz; önceki bağ varsa çöz. Bu fonksiyon
+    // tekrar çağrılabilir olmak zorunda (bkz. hlseDonustur).
+    await ffmpeg.unmount(GIRDI_KLASORU).catch(() => undefined);
     await ffmpeg.mount("WORKERFS" as FFFSType, { files: [dosya] }, GIRDI_KLASORU);
     return `${GIRDI_KLASORU}/${dosya.name}`;
   } catch {
@@ -470,14 +473,25 @@ function argumanlariUret(mod: DonusturmeModu, girdiAdi: string): string[] {
 export async function hlseDonustur(
   dosya: File,
   secenekler: {
-    girdiAdi: string;
     plan: DonusturmePlani;
     bilgi: MedyaBilgisi;
     asama?: (a: Asama) => void;
   },
 ): Promise<DonusturmeSonucu> {
-  const { girdiAdi, plan, bilgi, asama } = secenekler;
+  const { plan, bilgi, asama } = secenekler;
   const ffmpeg = await ffmpegGetir();
+
+  /*
+   * Girdi BURADA bağlanıyor, dışarıdan hazır yol alınmıyor.
+   *
+   * Önceden incele() sırasında bağlanan yol parametre olarak geliyordu. Ama
+   * dönüştürme bitince temizle() o bağı çözüyor; yükleme adımı başarısız olup
+   * kullanıcı "Yine de dönüştür" dediğinde yol artık yoktu ve ffmpeg
+   * "No such file or directory" ile duruyordu. Bağlama maliyetsiz (dosya
+   * kopyalanmıyor, referansla bağlanıyor), o yüzden her seferinde yeniden
+   * kuruyoruz.
+   */
+  const girdiAdi = await girdiyiBagla(ffmpeg, dosya);
 
   await ffmpeg.createDir(CIKTI_KLASORU).catch(() => {
     // Klasör zaten varsa sorun değil.

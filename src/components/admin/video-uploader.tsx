@@ -34,6 +34,45 @@ import {
 } from "@/modules/video/browser-transcode";
 
 /**
+ * Tarayıcı bir isteği AĞ düzeyinde yapamadığında ham bir TypeError atar:
+ * Safari'de "Load failed", Chrome'da "Failed to fetch". Ortada HTTP durumu
+ * bile yoktur, dolayısıyla cevap kontrolleri hiç çalışmaz.
+ *
+ * Bu sitede en sık sebebi, tarayıcıdan doğrudan Cloudflare R2'ye giden
+ * yükleme isteğinin CORS'a takılmasıdır: R2 yalnızca izin listesindeki
+ * adreslere cevap verir ve liste tam eşleşme arar. Site yeni bir adrese
+ * taşındığında (ör. geçici vercel.app adresi) o adres listede olmaz.
+ *
+ * Ayrı bir tür olmasının sebebi: bu hata videonun içeriğiyle ilgili değil,
+ * ama önceden "dosya paketlenemedi, yeniden kodlayalım" diye yorumlanıyordu.
+ */
+class YuklemeHatasi extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "YuklemeHatasi";
+  }
+}
+
+/** Ağ düzeyinde patlayan fetch'i anlaşılır bir hataya çevirir. */
+async function agIstegi(
+  istek: () => Promise<Response>,
+  nerede: string,
+): Promise<Response> {
+  try {
+    return await istek();
+  } catch (hata) {
+    const koken =
+      typeof window === "undefined" ? "sitenin adresi" : window.location.origin;
+    throw new YuklemeHatasi(
+      `${nerede} bağlanılamadı. En olası sebep: Cloudflare R2'nin CORS izin ` +
+        `listesinde "${koken}" adresi yok. R2 > bucket > Settings > CORS Policy ` +
+        `> AllowedOrigins listesine bu adresi ekleyip tekrar deneyin.` +
+        (hata instanceof Error ? `\n\n(${hata.message})` : ""),
+    );
+  }
+}
+
+/**
  * Video yükleme (PROJE.md §1, §12.1).
  *
  * Akış — öğretmenin yapması gereken tek şey dosyayı seçmek:
@@ -59,7 +98,6 @@ type Durum =
       ad: "onay-bekliyor";
       bilgi: MedyaBilgisi;
       plan: DonusturmePlani;
-      girdiAdi: string;
       /** Hızlı yol denenip başarısız olduysa kullanıcıya sebebini anlatır. */
       onNot?: string;
     }
@@ -199,17 +237,17 @@ export function VideoUploader({
     }
 
     try {
-      const { bilgi, plan, girdiAdi } = await incele(dosya, (asama) =>
+      const { bilgi, plan } = await incele(dosya, (asama) =>
         setDurum({ ad: "inceleniyor", asama }),
       );
 
       // Hızlı yollarda kullanıcıyı bekletmeye gerek yok, doğrudan başla.
       if (!plan.yavas) {
-        await donustur(dosya, girdiAdi, plan, bilgi);
+        await donustur(dosya, plan, bilgi);
         return;
       }
       // Yavaş yol uzun sürer; onay al.
-      setDurum({ ad: "onay-bekliyor", bilgi, plan, girdiAdi });
+      setDurum({ ad: "onay-bekliyor", bilgi, plan });
     } catch (hata) {
       setDurum({
         ad: "hata",
@@ -220,13 +258,11 @@ export function VideoUploader({
 
   async function donustur(
     dosya: File,
-    girdiAdi: string,
     plan: DonusturmePlani,
     bilgi: MedyaBilgisi,
   ) {
     try {
       const sonuc = await hlseDonustur(dosya, {
-        girdiAdi,
         plan,
         bilgi,
         asama: (asama) => setDurum({ ad: "calisiyor", asama, plan }),
@@ -235,13 +271,20 @@ export function VideoUploader({
       // --- R2'ye doğrudan yükleme ---
       setDurum({ ad: "yukleniyor", biten: 0, toplam: sonuc.dosyalar.length });
 
-      const yanit = await fetch("/api/admin/videos/presign", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          files: sonuc.dosyalar.map((d) => ({ path: d.yol, size: d.veri.length })),
-        }),
-      });
+      const yanit = await agIstegi(
+        () =>
+          fetch("/api/admin/videos/presign", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              files: sonuc.dosyalar.map((d) => ({
+                path: d.yol,
+                size: d.veri.length,
+              })),
+            }),
+          }),
+        "Yükleme adresleri alınırken sunucuya",
+      );
 
       const govde = (await yanit.json()) as
         | {
@@ -264,13 +307,19 @@ export function VideoUploader({
         async (parca) => {
           const veri = yolaGore.get(parca.path);
           if (!veri) return;
-          const cevap = await fetch(parca.url, {
-            method: "PUT",
-            // Uint8Array'i doğrudan göndermek yerine Blob: bazı tarayıcılar
-            // ArrayBufferView gövdelerinde Content-Length'i yanlış hesaplıyor.
-            body: new Blob([new Uint8Array(veri)], { type: parca.contentType }),
-            headers: { "content-type": parca.contentType },
-          });
+          const cevap = await agIstegi(
+            () =>
+              fetch(parca.url, {
+                method: "PUT",
+                // Uint8Array'i doğrudan göndermek yerine Blob: bazı tarayıcılar
+                // ArrayBufferView gövdelerinde Content-Length'i yanlış hesaplıyor.
+                body: new Blob([new Uint8Array(veri)], {
+                  type: parca.contentType,
+                }),
+                headers: { "content-type": parca.contentType },
+              }),
+            "Video parçaları Cloudflare'e gönderilirken",
+          );
           if (!cevap.ok) {
             throw new Error(
               `"${parca.path}" yüklenemedi (${cevap.status}). ` +
@@ -307,15 +356,15 @@ export function VideoUploader({
       // uydurma bir süre tahmini gösteriliyordu. Önceden bu ayrım metin
       // araması ile yapılıyordu ve tarayıcının ham hatası ("Load failed")
       // hiçbir kalıba uymadığı için yanlış tarafa düşüyordu.
-      const cekirdekHatasi =
+      const yenidenKodlamaFaydasiz =
         hata instanceof CekirdekBaslatilamadi ||
+        hata instanceof YuklemeHatasi ||
         mesaj.includes("yüklenemedi") ||
         mesaj.includes("CORS");
-      if (plan.mod !== "tam-kodla" && !cekirdekHatasi) {
+      if (plan.mod !== "tam-kodla" && !yenidenKodlamaFaydasiz) {
         setDurum({
           ad: "onay-bekliyor",
           bilgi,
-          girdiAdi,
           plan: {
             ...planla({ ...bilgi, videoKodek: "bilinmiyor" }),
             aciklama:
@@ -417,7 +466,7 @@ export function VideoUploader({
                 const dosya = girdiRef.current?.files?.[0];
                 if (!dosya) return;
                 baslangicRef.current = Date.now();
-                void donustur(dosya, durum.girdiAdi, durum.plan, durum.bilgi);
+                void donustur(dosya, durum.plan, durum.bilgi);
               }}
             >
               <Wand2 className="size-4" aria-hidden />

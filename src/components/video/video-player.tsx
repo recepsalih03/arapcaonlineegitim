@@ -6,6 +6,8 @@ import {
   Minimize,
   Pause,
   Play,
+  RotateCcw,
+  RotateCw,
   Volume1,
   Volume2,
   VolumeX,
@@ -31,6 +33,12 @@ import { formatDuration } from "@/lib/utils";
  * kullanılamaz; orada playlist adresi src olarak verilmek zorundadır. Adres yine
  * kısa ömürlü ve yetki kontrollüdür.
  */
+
+/** Sunulan oynatma hızları. 1 = normal. */
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+
+/** İleri/geri alma miktarı (saniye). */
+const ATLAMA_SANIYE = 10;
 
 type VideoPlayerProps = {
   /** Playlist proxy adresi: /api/videos/<id>/hls/<playlist>.m3u8 */
@@ -66,6 +74,8 @@ export function VideoPlayer({
   const [duration, setDuration] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rate, setRate] = useState(1);
+  const [speedMenu, setSpeedMenu] = useState(false);
 
   // --- Kaynağı bağla -------------------------------------------------------
   useEffect(() => {
@@ -203,6 +213,7 @@ export function VideoPlayer({
       setMuted(video.muted);
       setVolume(video.volume);
     };
+    const onRate = () => setRate(video.playbackRate);
 
     video.addEventListener("timeupdate", onTime);
     video.addEventListener("durationchange", onDuration);
@@ -211,6 +222,7 @@ export function VideoPlayer({
     video.addEventListener("pause", onPause);
     video.addEventListener("ended", onEnded);
     video.addEventListener("volumechange", onVolume);
+    video.addEventListener("ratechange", onRate);
 
     return () => {
       video.removeEventListener("timeupdate", onTime);
@@ -220,6 +232,7 @@ export function VideoPlayer({
       video.removeEventListener("pause", onPause);
       video.removeEventListener("ended", onEnded);
       video.removeEventListener("volumechange", onVolume);
+      video.removeEventListener("ratechange", onRate);
     };
   }, [bildir, kaydet, baslangicSaniye]);
 
@@ -285,13 +298,53 @@ export function VideoPlayer({
     setCurrent(value);
   }, []);
 
+  // Göreli atlama (±10 sn), 0 ile video süresi arasında sınırlanır.
+  const skip = useCallback((delta: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const sinir = video.duration || 0;
+    const hedef = Math.min(sinir, Math.max(0, video.currentTime + delta));
+    video.currentTime = hedef;
+    setCurrent(hedef);
+  }, []);
+
+  const changeRate = useCallback((value: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = value;
+    setRate(value);
+    setSpeedMenu(false);
+  }, []);
+
+  // Klavye: ← → 10 sn atlar, boşluk/K oynat-duraklat. Odak bir sürgüdeyse
+  // (ses/konum) ok tuşları sürgünün kendi işine kalsın diye karışmıyoruz.
+  const onKey = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if ((event.target as HTMLElement).tagName === "INPUT") return;
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        skip(-ATLAMA_SANIYE);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        skip(ATLAMA_SANIYE);
+      } else if (event.key === " " || event.key === "k") {
+        event.preventDefault();
+        togglePlay();
+      }
+    },
+    [skip, togglePlay],
+  );
+
   const progress = duration > 0 ? (current / duration) * 100 : 0;
 
   return (
     <div
       ref={containerRef}
-      className="group relative overflow-hidden rounded-card bg-kum-900 shadow-sm"
+      className="group relative overflow-hidden rounded-card bg-kum-900 shadow-sm outline-none"
       onContextMenu={(event) => event.preventDefault()}
+      onKeyDown={onKey}
+      tabIndex={0}
+      aria-label={`Video oynatıcı: ${title}`}
     >
       <video
         ref={videoRef}
@@ -300,7 +353,11 @@ export function VideoPlayer({
         preload="metadata"
         controlsList="nodownload noplaybackrate noremoteplayback"
         disablePictureInPicture
-        onClick={togglePlay}
+        onClick={() => {
+          // Hız menüsü açıksa önce onu kapat, videoyu oynatma/duraklatma.
+          if (speedMenu) setSpeedMenu(false);
+          else togglePlay();
+        }}
         className="aspect-video w-full bg-black"
         aria-label={title}
       />
@@ -333,7 +390,19 @@ export function VideoPlayer({
           }}
         />
 
-        <div className="mt-2 flex items-center gap-2 text-white">
+        <div className="mt-2 flex items-center gap-1 text-white sm:gap-2">
+          <button
+            type="button"
+            onClick={() => skip(-ATLAMA_SANIYE)}
+            aria-label="10 saniye geri"
+            className="relative grid size-10 place-items-center rounded-full transition-colors hover:bg-white/15"
+          >
+            <RotateCcw className="size-5" aria-hidden />
+            <span className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] text-[7px] font-bold tabular-nums">
+              10
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={togglePlay}
@@ -345,6 +414,18 @@ export function VideoPlayer({
             ) : (
               <Play className="size-5 translate-x-px" aria-hidden />
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => skip(ATLAMA_SANIYE)}
+            aria-label="10 saniye ileri"
+            className="relative grid size-10 place-items-center rounded-full transition-colors hover:bg-white/15"
+          >
+            <RotateCw className="size-5" aria-hidden />
+            <span className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] text-[7px] font-bold tabular-nums">
+              10
+            </span>
           </button>
 
           {/*
@@ -383,15 +464,53 @@ export function VideoPlayer({
             />
           </div>
 
-          <span className="ml-1 font-mono text-xs tabular-nums text-white/85">
+          <span className="ml-1 shrink-0 whitespace-nowrap font-mono text-[11px] tabular-nums text-white/85 sm:text-xs">
             {formatDuration(current)} / {formatDuration(duration)}
           </span>
+
+          {/* Oynatma hızı: butona basınca üstünde küçük menü açılır. */}
+          <div className="relative ml-auto">
+            {speedMenu ? (
+              <div
+                className="absolute bottom-full right-0 mb-2 flex flex-col gap-0.5 rounded-xl bg-kum-900/95 p-1 shadow-lg ring-1 ring-white/10"
+                role="menu"
+                aria-label="Oynatma hızı"
+              >
+                {SPEEDS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={rate === s}
+                    onClick={() => changeRate(s)}
+                    className={`rounded-lg px-3 py-1.5 text-left text-sm tabular-nums transition-colors hover:bg-white/15 ${
+                      rate === s ? "font-bold text-altin-300" : "text-white/90"
+                    }`}
+                  >
+                    {s === 1 ? "Normal" : `${s}×`}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setSpeedMenu((a) => !a)}
+              aria-label="Oynatma hızı"
+              aria-haspopup="menu"
+              aria-expanded={speedMenu}
+              className={`grid h-10 min-w-10 place-items-center rounded-full px-2 text-xs font-semibold tabular-nums transition-colors hover:bg-white/15 ${
+                rate !== 1 ? "text-altin-300" : ""
+              }`}
+            >
+              {rate === 1 ? "1×" : `${rate}×`}
+            </button>
+          </div>
 
           <button
             type="button"
             onClick={toggleFullscreen}
             aria-label={fullscreen ? "Tam ekrandan çık" : "Tam ekran"}
-            className="ml-auto grid size-10 place-items-center rounded-full transition-colors hover:bg-white/15"
+            className="grid size-10 place-items-center rounded-full transition-colors hover:bg-white/15"
           >
             {fullscreen ? (
               <Minimize className="size-5" aria-hidden />

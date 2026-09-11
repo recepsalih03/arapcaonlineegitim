@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Online Arapça Özel Ders">
+  <!--
+    Sekme ikonu: logo.tsx'teki rub el-hizb yıldızının aynısı.
+    Farkı, sekmede 16 pikselde görüneceği için yıldızın kareyi daha çok
+    doldurması ve çizginin kalınlaştırılmış olması; ince çizgi o boyutta
+    bulanık bir lekeye dönüşüyor.
+    Renkler tema ile aynı: zumrut-700 zemin, altın çizgi.
+  -->
+  <rect width="32" height="32" rx="7" fill="#1b5541"/>
+  <path
+    transform="translate(1.6 1.6) scale(1.2)"
+    d="M12 2.5 15 5.5h4.5V10l3 2-3 2v4.5H15L12 21.5 9 18.5H4.5V14l-3-2 3-2V5.5H9z"
+    fill="none" stroke="#ddbc70" stroke-width="2" stroke-linejoin="round"/>
+</svg>

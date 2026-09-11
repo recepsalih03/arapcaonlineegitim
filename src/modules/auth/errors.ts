@@ -9,6 +9,7 @@ export const SIGN_IN_ERROR_CODES = {
   accountDisabled: "hesap_pasif",
   deviceLimit: "cihaz_limiti",
   missingFingerprint: "cihaz_kimligi_yok",
+  tooManyAttempts: "cok_fazla_deneme",
 } as const;
 
 export type SignInErrorCode =
@@ -32,6 +33,8 @@ export function signInErrorMessage(
       return `Bu hesap en fazla ${maxDevices} cihazdan kullanılabilir. Yeni bir cihaz eklemek için kullandığınız cihazlardan birinde "Hesabım" sayfasından bir cihazı silin.`;
     case SIGN_IN_ERROR_CODES.missingFingerprint:
       return "Cihazınız tanınamadı. Tarayıcınızı yenileyip tekrar deneyin.";
+    case SIGN_IN_ERROR_CODES.tooManyAttempts:
+      return "Çok fazla hatalı giriş denemesi yapıldı. Güvenlik için kısa bir süre bekleyip tekrar deneyin.";
     case SIGN_IN_ERROR_CODES.invalidCredentials:
       return "Kullanıcı adı veya şifre hatalı.";
     default:

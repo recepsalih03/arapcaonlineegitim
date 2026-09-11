@@ -37,6 +37,12 @@ model User {
   /// Admin öğrenciye ilettiği geçici şifreyi panelde tekrar görebilsin diye tutulur;
   /// öğrenci ilk girişini yapıp şifresini değiştirince temizlenir.
   initialPassword String?
+  /// Kaba kuvvet (brute-force) koruması: art arda başarısız giriş sayısı.
+  /// Başarılı girişte sıfırlanır.
+  failedLoginCount Int @default(0)
+  /// Bu ana kadar hesap giriş denemesine kapalı. Belirli sayıda hatalı denemeden
+  /// sonra kısa süreli konur; süre dolunca kendiliğinden açılır (kalıcı kilit değil).
+  lockedUntil  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

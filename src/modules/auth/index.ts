@@ -6,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/modules/auth/config";
 import { SIGN_IN_ERROR_CODES, SignInFailure } from "@/modules/auth/errors";
 import { verifyPassword } from "@/modules/auth/password";
+import {
+  basarisizDenemeyiIsle,
+  degerlendir,
+  sayaciSifirla,
+} from "@/modules/auth/throttle";
 import { coarseIp, deviceLabelFromUserAgent } from "@/modules/devices/labels";
 import { registerDevice } from "@/modules/devices/service";
 
@@ -57,6 +62,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { username: username.trim().toLowerCase() },
         });
 
+        // Kaba kuvvet koruması: hesap art arda hatalı denemeden dolayı kısa
+        // süreli kilitliyse şifreyi hiç kontrol etme. Kilit kalıcı değil,
+        // kendiliğinden açılır (bkz. throttle.ts).
+        if (user && degerlendir(user.lockedUntil).kilitli) {
+          throw new SignInFailure(SIGN_IN_ERROR_CODES.tooManyAttempts);
+        }
+
         // Kullanıcı yoksa da şifreyi doğrularmış gibi zaman harcamak yerine
         // sabit mesaj döneriz; kullanıcı adı sayımı (enumeration) bu yüzden
         // zamanlamadan da okunmasın diye bcrypt karşılaştırması yine yapılır.
@@ -65,12 +77,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           : await verifyPassword(password, DUMMY_HASH).then(() => false);
 
         if (!user || !passwordOk) {
+          // Yalnızca var olan hesap için sayaç işlet (yoksa kayıt açmaya
+          // çalışmak anlamsız ve enumeration'a kapı aralar).
+          if (user) await basarisizDenemeyiIsle(user.username);
           throw new SignInFailure(SIGN_IN_ERROR_CODES.invalidCredentials);
         }
 
         if (!user.isActive) {
           throw new SignInFailure(SIGN_IN_ERROR_CODES.accountDisabled);
         }
+
+        // Şifre doğrulandı: kaba kuvvet sayacını sıfırla (varsa). Cihaz limiti
+        // ayrı bir konu; şifre doğruysa deneme sayacı burada temizlenir.
+        if (user.failedLoginCount > 0) await sayaciSifirla(user.id);
 
         const userAgent = request?.headers?.get("user-agent") ?? null;
         const forwardedFor = request?.headers?.get("x-forwarded-for") ?? null;

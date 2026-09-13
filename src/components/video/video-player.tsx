@@ -468,11 +468,13 @@ export function VideoPlayer({
             {formatDuration(current)} / {formatDuration(duration)}
           </span>
 
-          {/* Oynatma hızı: butona basınca üstünde küçük menü açılır. */}
+          {/* Oynatma hızı: butona basınca üstünde küçük menü açılır.
+              Kompakt 2 sütunlu ızgara — mobilde video kısa olduğu için tek
+              sütun uzun menü kabın overflow-hidden'ına takılıp kırpılıyordu. */}
           <div className="relative ml-auto">
             {speedMenu ? (
               <div
-                className="absolute bottom-full right-0 mb-2 flex flex-col gap-0.5 rounded-xl bg-kum-900/95 p-1 shadow-lg ring-1 ring-white/10"
+                className="absolute bottom-full right-0 mb-2 grid w-40 grid-cols-2 gap-1 rounded-xl bg-kum-900/95 p-1.5 shadow-lg ring-1 ring-white/10"
                 role="menu"
                 aria-label="Oynatma hızı"
               >
@@ -483,11 +485,13 @@ export function VideoPlayer({
                     role="menuitemradio"
                     aria-checked={rate === s}
                     onClick={() => changeRate(s)}
-                    className={`rounded-lg px-3 py-1.5 text-left text-sm tabular-nums transition-colors hover:bg-white/15 ${
-                      rate === s ? "font-bold text-altin-300" : "text-white/90"
+                    className={`rounded-lg px-3 py-1.5 text-center text-sm tabular-nums transition-colors hover:bg-white/15 ${
+                      rate === s
+                        ? "bg-white/10 font-bold text-altin-300"
+                        : "text-white/90"
                     }`}
                   >
-                    {s === 1 ? "Normal" : `${s}×`}
+                    {s === 1 ? "1×" : `${s}×`}
                   </button>
                 ))}
               </div>

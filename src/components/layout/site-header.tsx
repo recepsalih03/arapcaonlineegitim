@@ -12,12 +12,14 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-kum-200 bg-kum-50/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
-        <Logo />
-        <nav className="flex items-center gap-1.5">
-          <Button asChild variant="ghost" size="sm">
+        <Logo metniGizleMobil />
+        {/* Dar telefonda taşmayı önlemek için mobilde küçük boşluk ve yatayda
+            kaydırılabilir nav; "Hakkımızda" mobilde de görünür. */}
+        <nav className="flex items-center gap-0.5 sm:gap-1.5">
+          <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
             <Link href="/oyunlar">Oyunlar</Link>
           </Button>
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
             <Link href="/hakkimizda">Hakkımızda</Link>
           </Button>
           {user ? (

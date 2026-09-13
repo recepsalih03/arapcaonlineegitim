@@ -9,9 +9,13 @@ import { cn } from "@/lib/utils";
 export function Logo({
   className,
   tone = "yesil",
+  metniGizleMobil = false,
 }: {
   className?: string;
   tone?: "yesil" | "beyaz";
+  /** true ise marka metni mobilde gizlenir, yalnızca ikon görünür (dar
+      header'larda nav'a yer açmak için). sm ve üstünde metin görünür. */
+  metniGizleMobil?: boolean;
 }) {
   return (
     <Link
@@ -38,7 +42,12 @@ export function Logo({
           />
         </svg>
       </span>
-      <span className="leading-tight">
+      <span
+        className={cn(
+          "leading-tight whitespace-nowrap",
+          metniGizleMobil && "hidden sm:block",
+        )}
+      >
         <span className="block text-[13px] font-medium opacity-70">Online</span>
         <span className="block text-[15px]">Arapça Özel Ders</span>
       </span>

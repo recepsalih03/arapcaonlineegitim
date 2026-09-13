@@ -52,7 +52,7 @@ export default async function AnaSayfa() {
                 <Link href="/giris">Öğrenci girişi</Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
-                <Link href="/hakkimizda">Hakkımızda</Link>
+                <Link href="/oyunlar">Oyunları dene</Link>
               </Button>
             </div>
           </div>

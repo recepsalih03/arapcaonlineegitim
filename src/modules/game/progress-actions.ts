@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { requireStudent } from "@/modules/auth/session";
 import { ilerlemeKaydet } from "@/modules/game/progress";
-import { getGameForGrade } from "@/modules/game/service";
+import { getActiveGame } from "@/modules/game/service";
 
 const sema = z.object({
   gameId: z.string().min(1).max(40),
@@ -18,8 +18,9 @@ const sema = z.object({
  *
  * Skor istemciden geliyor; oyun tamamen tarayıcıda çalıştığı için başka türlüsü
  * mümkün değil. Bu yüzden yalnızca "öğrenci bu alıştırmayı yaptı mı" sorusunun
- * cevabı sayılmalı, sınav notu gibi değil. Yine de sınırlar sunucuda zorlanıyor:
- * oyun öğrencinin sınıfına ait olmalı ve doğru sayısı toplamı aşamaz.
+ * cevabı sayılmalı, sınav notu gibi değil. Tüm oyunlar herkese açık olduğu için
+ * öğrenci başka sınıfın oyununu da oynayıp kaydedebilir; tek şart oyunun AKTİF
+ * olması ve doğru sayısının toplamı aşmaması.
  */
 export async function ilerlemeKaydetAction(girdi: {
   gameId: string;
@@ -32,8 +33,8 @@ export async function ilerlemeKaydetAction(girdi: {
 
   const student = await requireStudent();
 
-  // Başka sınıfın oyununa kayıt açılmasın.
-  const game = await getGameForGrade(parsed.data.gameId, student.gradeLevel);
+  // Oyun aktif olmalı; sınıf ayrımı yok (tüm oyunlar herkese açık).
+  const game = await getActiveGame(parsed.data.gameId);
   if (!game) return { ok: false };
 
   await ilerlemeKaydet({

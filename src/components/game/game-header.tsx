@@ -8,10 +8,13 @@ export function OyunBasligi({
   type,
   baslik,
   altYazi,
+  rozet,
 }: {
   type: OyunTuru;
   baslik: string;
   altYazi?: string | null;
+  /** İsteğe bağlı ek etiket, ör. "7. Sınıf". */
+  rozet?: string;
 }) {
   const tur = OYUN_TURLERI[type];
 
@@ -30,9 +33,16 @@ export function OyunBasligi({
           {tur.simge}
         </span>
         <div className="min-w-0">
-          <p className="inline-block rounded-full bg-white/25 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
-            {tur.ad}
-          </p>
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="inline-block rounded-full bg-white/25 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
+              {tur.ad}
+            </span>
+            {rozet ? (
+              <span className="inline-block rounded-full bg-black/20 px-2.5 py-0.5 text-[11px] font-semibold">
+                {rozet}
+              </span>
+            ) : null}
+          </span>
           <h1 className="mt-1 text-xl font-bold leading-tight drop-shadow-sm sm:text-2xl">
             {baslik}
           </h1>

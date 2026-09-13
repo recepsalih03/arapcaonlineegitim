@@ -34,6 +34,17 @@ export function gradeLabel(grade: number): string {
 }
 
 /**
+ * Bir içeriğin sınıf(lar)ını tek bir rozet metnine çevirir.
+ * Tek sınıf: "7. Sınıf" · birden çok: "5, 7. Sınıf".
+ */
+export function sinifRozeti(gradeLevels: number[]): string {
+  const sirali = [...new Set(gradeLevels)].sort((a, b) => a - b);
+  if (sirali.length === 0) return "";
+  if (sirali.length === 1) return gradeLabel(sirali[0]);
+  return `${sirali.join(", ")}. Sınıf`;
+}
+
+/**
  * Bir hesabın giriş yapabileceği en fazla fiziksel cihaz sayısı (PROJE.md §5).
  * Ortam değişkeniyle ezilebilir; ezilmezse 4.
  */

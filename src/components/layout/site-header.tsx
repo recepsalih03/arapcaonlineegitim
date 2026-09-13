@@ -14,6 +14,9 @@ export async function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
         <Logo />
         <nav className="flex items-center gap-1.5">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/oyunlar">Oyunlar</Link>
+          </Button>
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link href="/hakkimizda">Hakkımızda</Link>
           </Button>

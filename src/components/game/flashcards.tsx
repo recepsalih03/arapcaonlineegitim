@@ -43,13 +43,15 @@ export function KartOyunu({
 
   function git(yon: 1 | -1) {
     const yeni = (index + yon + ciftler.length) % ciftler.length;
+    // Güncel "görülen" kümesini updater DIŞINDA hesaplıyoruz. İlerleme bildirimi
+    // bir server action tetikliyor; setState updater'ının içinde çağrılırsa
+    // render sırasında Router güncellemesi olur ("Cannot update a component
+    // while rendering a different component"). Updater saf kalmalı.
+    const guncel = new Set(gorulen).add(yeni);
     setCevrik(false);
     setIndex(yeni);
-    setGorulen((o) => {
-      const guncel = new Set(o).add(yeni);
-      ilerlemeBildir(guncel.size, ciftler.length);
-      return guncel;
-    });
+    setGorulen(guncel);
+    ilerlemeBildir(guncel.size, ciftler.length);
   }
 
   return (

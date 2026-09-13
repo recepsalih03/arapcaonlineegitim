@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 
 import { OyunKarti } from "@/components/game/game-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { OYUNLAR_OGRENCIYE_ACIK } from "@/lib/constants";
+import { OYUNLAR_OGRENCIYE_ACIK, sinifRozeti } from "@/lib/constants";
 import { requireStudent } from "@/modules/auth/session";
-import { listGamesForGrade } from "@/modules/game/service";
+import { listActiveGames } from "@/modules/game/service";
 
 export const metadata: Metadata = { title: "Oyunlar" };
 
@@ -14,8 +14,10 @@ export default async function OgrenciOyunlarPage() {
   // Modül yayına alınana kadar öğrenciye kapalı (bkz. OYUNLAR_OGRENCIYE_ACIK).
   if (!OYUNLAR_OGRENCIYE_ACIK) notFound();
 
-  const student = await requireStudent();
-  const games = await listGamesForGrade(student.gradeLevel);
+  // Tüm sınıfların oyunları herkese açık; öğrenci de her oyunu oynayabilir,
+  // hangi sınıfa ait olduğunu kartındaki rozetten görür.
+  await requireStudent();
+  const games = await listActiveGames();
 
   return (
     <div className="space-y-5">
@@ -47,6 +49,7 @@ export default async function OgrenciOyunlarPage() {
                 type={game.type}
                 baslik={game.title}
                 altYazi={game.description}
+                rozet={sinifRozeti(game.grades.map((g) => g.gradeLevel))}
                 gecikmeMs={i * 70}
               />
             </li>

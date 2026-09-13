@@ -33,6 +33,23 @@ export async function getGame(id: string): Promise<GameWithGrades | null> {
   return prisma.game.findUnique({ where: { id }, include: withGrades });
 }
 
+/**
+ * Girişsiz erişilen public oyun sayfaları için: sınıf ayrımı yapmadan tüm
+ * AKTİF oyunlar. Şu an tüm oyunlar herkese açık (bkz. /oyunlar route'u).
+ */
+export async function listActiveGames(): Promise<GameWithGrades[]> {
+  return prisma.game.findMany({
+    where: { isActive: true },
+    include: withGrades,
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+  });
+}
+
+/** Public oyun oynama sayfası için: aktifse getir, değilse null (404). */
+export async function getActiveGame(id: string): Promise<GameWithGrades | null> {
+  return prisma.game.findFirst({ where: { id, isActive: true }, include: withGrades });
+}
+
 /** Öğrenci yalnızca kendi sınıfının aktif oyununu açabilir. */
 export async function getGameForGrade(
   id: string,

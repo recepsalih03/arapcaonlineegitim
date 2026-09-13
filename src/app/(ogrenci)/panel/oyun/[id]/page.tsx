@@ -6,17 +6,17 @@ import { notFound } from "next/navigation";
 import { OyunAlani } from "@/components/game/game-area";
 import { OyunBasligi } from "@/components/game/game-header";
 import { Alert } from "@/components/ui/alert";
-import { OYUNLAR_OGRENCIYE_ACIK } from "@/lib/constants";
+import { OYUNLAR_OGRENCIYE_ACIK, sinifRozeti } from "@/lib/constants";
 import { requireStudent } from "@/modules/auth/session";
 import { icerikCoz } from "@/modules/game/content";
-import { getGameForGrade } from "@/modules/game/service";
+import { getActiveGame } from "@/modules/game/service";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/panel/oyun/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const student = await requireStudent();
-  const game = await getGameForGrade(id, student.gradeLevel).catch(() => null);
+  await requireStudent();
+  const game = await getActiveGame(id).catch(() => null);
   return { title: game?.title ?? "Oyun" };
 }
 
@@ -25,11 +25,11 @@ export default async function OyunOynaPage({
 }: PageProps<"/panel/oyun/[id]">) {
   if (!OYUNLAR_OGRENCIYE_ACIK) notFound();
 
-  const student = await requireStudent();
+  await requireStudent();
   const { id } = await params;
 
-  // Kendi sınıfına ait olmayan oyun için 404: oyunun varlığı bile sızmasın.
-  const game = await getGameForGrade(id, student.gradeLevel);
+  // Tüm oyunlar herkese açık: öğrenci başka sınıfın oyununu da oynayabilir.
+  const game = await getActiveGame(id);
   if (!game) notFound();
 
   const icerik = icerikCoz(game.type, game.content);
@@ -48,6 +48,7 @@ export default async function OyunOynaPage({
         type={game.type}
         baslik={game.title}
         altYazi={game.description}
+        rozet={sinifRozeti(game.grades.map((g) => g.gradeLevel))}
       />
 
       {icerik === null ? (

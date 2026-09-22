@@ -15,7 +15,7 @@ import { requireAdmin } from "@/modules/auth/session";
 import { boslukSayisi, icerikSemasi } from "@/modules/game/content";
 import { createGame, deleteGame, updateGame } from "@/modules/game/service";
 
-const TURLER: GameType[] = ["BOSLUK", "KART", "ESLESTIRME", "BULMACA"];
+const TURLER: GameType[] = ["BOSLUK", "KART", "ESLESTIRME", "BULMACA", "TEST"];
 
 
 /** Form alanlarından türe uygun içeriği kurar ve doğrular. */
@@ -36,6 +36,50 @@ function icerikTopla(
     return parsed.success
       ? { ok: true, content: parsed.data }
       : { ok: false, error: "Metin çok kısa veya çok uzun." };
+  }
+
+  if (type === "TEST") {
+    const soruMetinleri = formData.getAll("test-soru").map((v) => String(v).trim());
+    const opt0 = formData.getAll("test-secenek-0").map((v) => String(v).trim());
+    const opt1 = formData.getAll("test-secenek-1").map((v) => String(v).trim());
+    const opt2 = formData.getAll("test-secenek-2").map((v) => String(v).trim());
+    const opt3 = formData.getAll("test-secenek-3").map((v) => String(v).trim());
+    const dogrular = formData.getAll("test-dogru").map((v) => parseInt(String(v), 10));
+
+    const sorular = soruMetinleri
+      .map((soru, i) => ({
+        soru,
+        secenekler: [
+          opt0[i] ?? "",
+          opt1[i] ?? "",
+          opt2[i] ?? "",
+          opt3[i] ?? "",
+        ] as [string, string, string, string],
+        dogruIndex:
+          Number.isInteger(dogrular[i]) && dogrular[i] >= 0 && dogrular[i] <= 3
+            ? dogrular[i]
+            : 0,
+      }))
+      .filter(
+        (s) =>
+          s.soru.length > 0 &&
+          s.secenekler.every((sec) => sec.length > 0),
+      );
+
+    if (sorular.length < 1) {
+      return {
+        ok: false,
+        error: "En az bir soru ve 4 şıkkını eksiksiz doldurmalısınız.",
+      };
+    }
+
+    const parsed = icerikSemasi(type).safeParse({ sorular });
+    return parsed.success
+      ? { ok: true, content: parsed.data }
+      : {
+          ok: false,
+          error: "Sorulardan veya şıklardan biri geçerli değil (çok uzun veya boş).",
+        };
   }
 
   const sorular = formData.getAll("cift-soru").map((v) => String(v).trim());

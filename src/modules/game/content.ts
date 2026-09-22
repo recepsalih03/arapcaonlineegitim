@@ -36,10 +36,32 @@ export const ciftler = z.object({
 });
 export type CiftlerIcerik = z.infer<typeof ciftler>;
 
-export type OyunIcerik = BoslukIcerik | CiftlerIcerik;
+/** Test (4 şıklı soru): her soru bir metin + 4 şık + doğru şık indexi. */
+export const test = z.object({
+  sorular: z
+    .array(
+      z.object({
+        soru: z.string().trim().min(1).max(500),
+        secenekler: z.tuple([
+          z.string().trim().min(1).max(200),
+          z.string().trim().min(1).max(200),
+          z.string().trim().min(1).max(200),
+          z.string().trim().min(1).max(200),
+        ]),
+        dogruIndex: z.number().int().min(0).max(3),
+      }),
+    )
+    .min(1)
+    .max(100),
+});
+export type TestIcerik = z.infer<typeof test>;
+
+export type OyunIcerik = BoslukIcerik | CiftlerIcerik | TestIcerik;
 
 export function icerikSemasi(type: GameType) {
-  return type === "BOSLUK" ? bosluk : ciftler;
+  if (type === "BOSLUK") return bosluk;
+  if (type === "TEST") return test;
+  return ciftler;
 }
 
 /** Kayıtlı JSON'u türüne göre çözer; bozuksa null döner. */

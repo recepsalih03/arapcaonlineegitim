@@ -39,3 +39,20 @@ export function startOfDayUTC(date: Date = new Date()): Date {
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
   );
 }
+
+/** Dosya boyutunu okunabilir biçime çevirir. */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** MIME tipine göre dosya türü etiketi. */
+export function docTypeLabel(mimeType: string): string {
+  if (mimeType === "application/pdf") return "PDF";
+  if (mimeType.includes("word")) return "Word";
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return "Excel";
+  if (mimeType.includes("presentation") || mimeType.includes("powerpoint")) return "PowerPoint";
+  if (mimeType === "text/plain") return "Metin";
+  return "Dosya";
+}

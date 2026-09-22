@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { Check, Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
@@ -24,6 +24,11 @@ export type OyunFormVerisi = {
   grades: number[];
   metin?: string;
   ciftler?: Array<{ soru: string; cevap: string }>;
+  sorular?: Array<{
+    soru: string;
+    secenekler: [string, string, string, string];
+    dogruIndex: number;
+  }>;
 };
 
 /** Oyun oluşturma / düzenleme formu. Editör alanı türe göre değişir. */
@@ -78,6 +83,8 @@ export function GameForm({
 
       {type === "BOSLUK" ? (
         <BoslukEditoru metin={game?.metin ?? ""} />
+      ) : type === "TEST" ? (
+        <TestEditoru sorular={game?.sorular ?? []} />
       ) : (
         <CiftEditoru type={type} ciftler={game?.ciftler ?? []} />
       )}
@@ -209,6 +216,201 @@ function CiftEditoru({
       </Button>
 
       {tur.ipucu ? <FieldHint>{tur.ipucu}</FieldHint> : null}
+    </Field>
+  );
+}
+
+const HARFLER = ["A", "B", "C", "D"] as const;
+
+function TestEditoru({
+  sorular: baslangicSorulari,
+}: {
+  sorular: Array<{
+    soru: string;
+    secenekler: [string, string, string, string];
+    dogruIndex: number;
+  }>;
+}) {
+  const [sorular, setSorular] = useState(
+    baslangicSorulari.length > 0
+      ? baslangicSorulari
+      : [
+          {
+            soru: "",
+            secenekler: ["", "", "", ""] as [string, string, string, string],
+            dogruIndex: 0,
+          },
+        ],
+  );
+
+  function soruMetniDegistir(index: number, metin: string) {
+    setSorular((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, soru: metin } : s)),
+    );
+  }
+
+  function secenekDegistir(
+    soruIdx: number,
+    secenekIdx: number,
+    deger: string,
+  ) {
+    setSorular((prev) =>
+      prev.map((s, i) => {
+        if (i !== soruIdx) return s;
+        const yeniSecenekler = [...s.secenekler] as [
+          string,
+          string,
+          string,
+          string,
+        ];
+        yeniSecenekler[secenekIdx] = deger;
+        return { ...s, secenekler: yeniSecenekler };
+      }),
+    );
+  }
+
+  function dogruSec(soruIdx: number, dogruIndex: number) {
+    setSorular((prev) =>
+      prev.map((s, i) => (i === soruIdx ? { ...s, dogruIndex } : s)),
+    );
+  }
+
+  function soruEkle() {
+    setSorular((prev) => [
+      ...prev,
+      {
+        soru: "",
+        secenekler: ["", "", "", ""],
+        dogruIndex: 0,
+      },
+    ]);
+  }
+
+  function soruSil(soruIdx: number) {
+    if (sorular.length <= 1) return;
+    setSorular((prev) => prev.filter((_, i) => i !== soruIdx));
+  }
+
+  return (
+    <Field>
+      <div className="flex items-center justify-between">
+        <Label>Test Soruları ({sorular.length})</Label>
+        <span className="text-xs text-kum-500">
+          Yeşil işaretli şık doğru cevaptır
+        </span>
+      </div>
+
+      <div className="space-y-6">
+        {sorular.map((soru, sIdx) => (
+          <div
+            key={sIdx}
+            className="rounded-xl border border-kum-200 bg-kum-50/50 p-4 transition-colors sm:p-5"
+          >
+            {/* Soru Başlığı & Sil */}
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-sm font-semibold text-kum-800">
+                {sIdx + 1}. Soru
+              </span>
+              <button
+                type="button"
+                onClick={() => soruSil(sIdx)}
+                disabled={sorular.length <= 1}
+                aria-label={`${sIdx + 1}. soruyu sil`}
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-kum-400 transition-colors hover:bg-kum-200 hover:text-kirmizi-600 disabled:invisible"
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+                <span>Sil</span>
+              </button>
+            </div>
+
+            {/* Soru Metni */}
+            <div className="mb-4">
+              <Textarea
+                name="test-soru"
+                value={soru.soru}
+                onChange={(e) => soruMetniDegistir(sIdx, e.target.value)}
+                placeholder={`${sIdx + 1}. sorunun metnini yazın…`}
+                rows={2}
+                required
+                className="bg-white"
+              />
+            </div>
+
+            {/* Doğru şık gizli girdi */}
+            <input type="hidden" name="test-dogru" value={soru.dogruIndex} />
+
+            {/* 4 Şık */}
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {HARFLER.map((harf, oIdx) => {
+                const dogruMu = soru.dogruIndex === oIdx;
+                const inputName = `test-secenek-${oIdx}`;
+                return (
+                  <div
+                    key={harf}
+                    className={`flex items-center gap-2 rounded-lg border p-1.5 transition-colors ${
+                      dogruMu
+                        ? "border-zumrut-400 bg-zumrut-50/60 ring-1 ring-zumrut-400"
+                        : "border-kum-200 bg-white"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => dogruSec(sIdx, oIdx)}
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-md font-semibold text-xs transition-all ${
+                        dogruMu
+                          ? "bg-zumrut-600 text-white shadow-xs"
+                          : "bg-kum-100 text-kum-600 hover:bg-kum-200"
+                      }`}
+                      title={
+                        dogruMu
+                          ? "Doğru şık olarak işaretli"
+                          : "Doğru şık olarak işaretlemek için tıklayın"
+                      }
+                    >
+                      {dogruMu ? <Check className="size-4" /> : harf}
+                    </button>
+
+                    <Input
+                      name={inputName}
+                      value={soru.secenekler[oIdx] ?? ""}
+                      onChange={(e) =>
+                        secenekDegistir(sIdx, oIdx, e.target.value)
+                      }
+                      placeholder={`${harf} şıkkı`}
+                      required
+                      className="border-0 bg-transparent px-2 py-1 shadow-none focus-visible:ring-0"
+                    />
+
+                    {dogruMu && (
+                      <span className="mr-2 shrink-0 text-[11px] font-medium text-zumrut-700">
+                        Doğru
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={soruEkle}
+          className="border border-dashed border-kum-300 hover:border-kum-400"
+        >
+          <Plus className="size-4" aria-hidden />
+          Yeni soru ekle
+        </Button>
+      </div>
+
+      <FieldHint>
+        Her soru için 4 şık belirleyin ve doğru olan şıkkın harfine tıklayarak
+        işaretleyin.
+      </FieldHint>
     </Field>
   );
 }

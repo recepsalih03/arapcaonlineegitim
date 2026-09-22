@@ -67,6 +67,17 @@ export const OYUN_TURLERI: Record<
       "linear-gradient(135deg, var(--color-oyun-firuze), var(--color-oyun-zumrut))",
     simge: "🧩",
   },
+  TEST: {
+    ad: "Test",
+    aciklama: "4 şıklı test soruları. Öğrenci doğru şıkkı seçer.",
+    ornekAd: "3. Ünite kelime testi",
+    editorBasligi: "Sorular",
+    soruEtiketi: "Soru",
+    cevapEtiketi: "Doğru şık",
+    renk:
+      "linear-gradient(135deg, var(--color-oyun-lacivert), var(--color-oyun-mercan))",
+    simge: "📝",
+  },
 };
 
 export const OYUN_TURU_LISTESI = Object.keys(OYUN_TURLERI) as OyunTuru[];

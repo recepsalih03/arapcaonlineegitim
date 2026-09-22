@@ -87,3 +87,20 @@ export function tazeleKlasorler(grade?: number | null) {
   revalidatePath("/panel/videolar/[id]", "page");
   if (grade) revalidatePath(`/yonetim/sinif/${grade}`);
 }
+
+export function tazeleDokumanlar(grades: number[] = []) {
+  revalidatePath("/yonetim");
+  revalidatePath("/yonetim/dokumanlar");
+  revalidatePath("/yonetim/dokumanlar/[id]", "page");
+  revalidatePath("/panel");
+  revalidatePath("/panel/dokumanlar");
+  sinifPanelleri(grades);
+}
+
+/** Doküman klasör değişimi yönetim ve öğrenci taraflarındaki doküman listelerini etkiler. */
+export function tazeleDocKlasorler(grade?: number | null) {
+  revalidatePath("/yonetim/dokumanlar");
+  revalidatePath("/yonetim/dokumanlar/[id]", "page");
+  revalidatePath("/panel/dokumanlar");
+  if (grade) revalidatePath(`/yonetim/sinif/${grade}`);
+}

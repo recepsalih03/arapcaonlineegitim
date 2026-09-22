@@ -1,4 +1,4 @@
-import { Globe, Megaphone, Users, Vote } from "lucide-react";
+import { FileText, Globe, Megaphone, Users, Vote } from "lucide-react";
 import Link from "next/link";
 
 import { Alert } from "@/components/ui/alert";
@@ -7,14 +7,16 @@ import { GRADES, gradeLabel } from "@/lib/constants";
 import { isR2Configured } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { countStudentsByGrade } from "@/modules/students/service";
+import { countDocumentsByGrade } from "@/modules/document/service";
 import { countVideosByGrade, listPublicVideosByGrade } from "@/modules/video/service";
 
 /** Genel panel: tüm sınıfların özeti (PROJE.md §7 "Panel yapısı"). */
 export default async function YonetimGenelPage() {
-  const [students, videos, publicVideos, announcementCount, surveyCount] =
+  const [students, videos, documents, publicVideos, announcementCount, surveyCount] =
     await Promise.all([
       countStudentsByGrade(),
       countVideosByGrade(),
+      countDocumentsByGrade(),
       listPublicVideosByGrade(),
       prisma.announcement.count({ where: { isActive: true } }),
       prisma.survey.count({ where: { isActive: true } }),
@@ -38,8 +40,9 @@ export default async function YonetimGenelPage() {
       ) : null}
 
       {/* Mobilde 3 sütun: üç sayı için üç tam genişlik kart telefonda israftı. */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         <OzetKutusu icon={Users} label="Aktif öğrenci" value={totalStudents} />
+        <OzetKutusu icon={FileText} label="Doküman" value={Object.values(documents).reduce((a, b) => a + b, 0)} />
         <OzetKutusu icon={Megaphone} label="Yayında duyuru" value={announcementCount} />
         <OzetKutusu icon={Vote} label="Açık anket" value={surveyCount} />
       </div>
@@ -75,6 +78,12 @@ export default async function YonetimGenelPage() {
                         <dt className="text-xs text-kum-500">Video</dt>
                         <dd className="font-semibold text-kum-900">
                           {videos[grade] ?? 0}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-kum-500">Doküman</dt>
+                        <dd className="font-semibold text-kum-900">
+                          {documents[grade] ?? 0}
                         </dd>
                       </div>
                     </dl>

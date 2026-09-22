@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  FileText,
   Gamepad2,
   GraduationCap,
   LayoutDashboard,
@@ -20,6 +21,7 @@ const SECTIONS = [
   { href: "/yonetim", label: "Genel bakış", icon: LayoutDashboard, exact: true },
   { href: "/yonetim/ogrenciler", label: "Öğrenciler", icon: Users },
   { href: "/yonetim/videolar", label: "Videolar", icon: MonitorPlay },
+  { href: "/yonetim/dokumanlar", label: "Dokümanlar", icon: FileText },
   { href: "/yonetim/duyurular", label: "Duyurular", icon: Megaphone },
   { href: "/yonetim/anketler", label: "Anketler", icon: Vote },
   { href: "/yonetim/oyunlar", label: "Oyunlar", icon: Gamepad2 },

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  FileText,
   Gamepad2,
   Home,
   Megaphone,
@@ -34,6 +35,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/panel", label: "Ana Sayfa", icon: Home },
   { href: "/panel/videolar", label: "Videolar", icon: MonitorPlay, matchPrefix: true },
+  { href: "/panel/dokumanlar", label: "Dokümanlar", icon: FileText },
   // Oyunlar henüz yayında değil; bayrak açılınca menüye girer.
   ...(OYUNLAR_OGRENCIYE_ACIK
     ? [

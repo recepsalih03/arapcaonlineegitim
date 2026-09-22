@@ -139,10 +139,18 @@ export function VideoPlayer({
           if (!data.fatal) return;
 
           if (data.type === "networkError" && agDenemesi < AZAMI_AG_DENEMESI) {
-            // İmzalı link süresi dolmuş olabilir: playlist'i yeniden yükle.
+            // İmzalı link süresi dolmuş veya geçici ağ hatası: pozisyonu koruyarak playlist'i yenile.
             agDenemesi++;
+            const sonZaman = video.currentTime;
             ornek.loadSource(src);
-            ornek.startLoad();
+            ornek.startLoad(sonZaman);
+            if (sonZaman > 0) {
+              const onTazelendi = () => {
+                video.currentTime = sonZaman;
+                ornek.off(Hls.Events.MANIFEST_PARSED, onTazelendi);
+              };
+              ornek.on(Hls.Events.MANIFEST_PARSED, onTazelendi);
+            }
             return;
           }
 

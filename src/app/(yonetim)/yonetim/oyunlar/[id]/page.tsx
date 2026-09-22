@@ -29,6 +29,7 @@ export default async function OyunDuzenlePage({
 
   const icerik = icerikCoz(game.type, game.content);
   const ciftler = icerik && "ciftler" in icerik ? icerik.ciftler : undefined;
+  const sorular = icerik && "sorular" in icerik ? icerik.sorular : undefined;
 
   const veri: OyunFormVerisi = {
     id: game.id,
@@ -40,6 +41,7 @@ export default async function OyunDuzenlePage({
     grades: game.grades.map((g) => g.gradeLevel),
     metin: icerik && "metin" in icerik ? icerik.metin : undefined,
     ciftler,
+    sorular,
   };
 
   // Bulmacada yerleşemeyen kelimeleri burada söylemek, öğrenci oyunu açtığında

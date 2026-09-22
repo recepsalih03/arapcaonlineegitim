@@ -165,6 +165,8 @@ enum GameType {
   ESLESTIRME
   /// İpuçlarından kelime bulmaca (yerleşim otomatik üretilir).
   BULMACA
+  /// 4 şıklı test soruları.
+  TEST
 }
 
 /// Öğrenciler için alıştırma oyunu.
@@ -299,4 +301,59 @@ model SurveyParticipation {
   votedOn  DateTime
 
   @@id([surveyId, userId])
+}
+
+// =========================================================================
+// Doküman paylaşımı
+// =========================================================================
+
+/// Adminin dokümanları (PDF, Word vb.) gruplaması için klasör.
+/// Her klasör TEK BİR sınıfa aittir (video klasörleriyle aynı mantık).
+model DocumentFolder {
+  id         String   @id @default(cuid())
+  name       String
+  gradeLevel Int
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  documentGrades DocumentGrade[]
+
+  @@index([gradeLevel, sortOrder])
+}
+
+/// Yüklenen doküman (PDF, Word, Excel, PowerPoint vb.).
+/// Dosya R2'de saklanır; öğrenci presigned GET ile indirir/görüntüler.
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  /// R2'deki dosya anahtarı, ör. "docs/clx123/odev.pdf"
+  r2Key       String
+  /// Orijinal dosya adı (indirme bağlantısında kullanılır).
+  fileName    String
+  /// MIME tipi (application/pdf, vb.).
+  mimeType    String
+  /// Dosya boyutu (byte).
+  fileSize    Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  grades DocumentGrade[]
+
+  @@index([isActive])
+}
+
+/// Dokümanın bir sınıfa (ve isteğe bağlı klasöre) atanması.
+model DocumentGrade {
+  documentId String
+  gradeLevel Int
+  folderId   String?
+  document   Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  folder     DocumentFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@id([documentId, gradeLevel])
+  @@index([gradeLevel])
+  @@index([folderId])
 }

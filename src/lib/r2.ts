@@ -12,6 +12,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   SIGNED_SEGMENT_TTL_SECONDS,
   SIGNED_UPLOAD_TTL_SECONDS,
+  isDocumentPrefix,
   isVideoPrefix,
 } from "@/lib/constants";
 import { env } from "@/lib/env";
@@ -72,11 +73,16 @@ export async function signedPutUrl(
   );
 }
 
-/** Küçük metin dosyalarını (playlist) sunucu tarafında okur. */
-export async function getObjectText(key: string): Promise<string> {
-  const result = await r2Client().send(
+/** Doküman gibi dosyaları doğrudan stream etmek için R2 nesnesini döner. */
+export async function getObject(key: string) {
+  return r2Client().send(
     new GetObjectCommand({ Bucket: env.r2.bucket, Key: key }),
   );
+}
+
+/** Küçük metin dosyalarını (playlist) sunucu tarafında okur. */
+export async function getObjectText(key: string): Promise<string> {
+  const result = await getObject(key);
   if (!result.Body) {
     throw new Error(`R2 nesnesi boş: ${key}`);
   }
@@ -125,6 +131,33 @@ export async function deletePrefix(prefix: string): Promise<number> {
   if (keys.length === 0) return 0;
 
   // DeleteObjects tek seferde en fazla 1000 anahtar alır.
+  for (let i = 0; i < keys.length; i += 1000) {
+    const chunk = keys.slice(i, i + 1000);
+    await r2Client().send(
+      new DeleteObjectsCommand({
+        Bucket: env.r2.bucket,
+        Delete: { Objects: chunk.map((Key) => ({ Key })) },
+      }),
+    );
+  }
+  return keys.length;
+}
+
+/**
+ * Doküman klasörünü siler (docs/<id>/ kalıbı).
+ * Video silmeyle aynı güvenlik sınırı.
+ */
+export async function deleteDocPrefix(prefix: string): Promise<number> {
+  if (!isDocumentPrefix(prefix)) {
+    throw new Error(
+      `Güvenli olmayan silme ön eki reddedildi: ${JSON.stringify(prefix)}. ` +
+        'Yalnızca "docs/<id>/" biçimindeki klasörler silinebilir.',
+    );
+  }
+
+  const keys = await listKeys(prefix);
+  if (keys.length === 0) return 0;
+
   for (let i = 0; i < keys.length; i += 1000) {
     const chunk = keys.slice(i, i + 1000);
     await r2Client().send(

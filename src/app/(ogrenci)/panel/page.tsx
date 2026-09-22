@@ -1,4 +1,4 @@
-import { ChevronRight, Megaphone, MonitorPlay, Vote } from "lucide-react";
+import { ChevronRight, FileText, Megaphone, MonitorPlay, Vote } from "lucide-react";
 import Link from "next/link";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,14 +7,16 @@ import { gradeLabel } from "@/lib/constants";
 import { cn, formatDate } from "@/lib/utils";
 import { listAnnouncementsForGrade } from "@/modules/announcements/service";
 import { requireStudent } from "@/modules/auth/session";
+import { listDocumentsForGrade } from "@/modules/document/service";
 import { listSurveysForStudent } from "@/modules/surveys/service";
 import { listVideosForGrade } from "@/modules/video/service";
 
 export default async function PanelAnaSayfa() {
   const student = await requireStudent();
 
-  const [videos, announcements, surveys] = await Promise.all([
+  const [videos, documents, announcements, surveys] = await Promise.all([
     listVideosForGrade(student.gradeLevel),
+    listDocumentsForGrade(student.gradeLevel),
     listAnnouncementsForGrade(student.gradeLevel),
     listSurveysForStudent(student.id, student.gradeLevel),
   ]);
@@ -36,12 +38,18 @@ export default async function PanelAnaSayfa() {
         Mobilde bilerek 3 sütun: üç sayı için üç tam genişlik kart, telefonda
         ekranın tamamını yiyip kullanıcıyı boşuna kaydırtıyordu.
       */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         <OzetKarti
           href="/panel/videolar"
           icon={MonitorPlay}
           label="Ders videosu"
           count={videos.length}
+        />
+        <OzetKarti
+          href="/panel/dokumanlar"
+          icon={FileText}
+          label="Doküman"
+          count={documents.length}
         />
         <OzetKarti
           href="/panel/duyurular"
